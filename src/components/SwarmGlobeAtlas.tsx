@@ -53,10 +53,8 @@ export function SwarmGlobeAtlas({
 }: SwarmGlobeAtlasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Rotation state [yaw, pitch, roll]
-  const [rotation, setRotation] = useState<[number, number, number]>([-40, -25, 0]);
+  // Rotation ref [yaw, pitch, roll] maintained strictly across frames without being clobbered by React renders
   const rotationRef = useRef<[number, number, number]>([-40, -25, 0]);
-  rotationRef.current = rotation;
 
   const [scale, setScale] = useState<number>(250);
   const scaleRef = useRef<number>(250);
@@ -135,9 +133,12 @@ export function SwarmGlobeAtlas({
     });
   };
 
-  // Fly to target coordinate on globe
+  // Fly to target coordinate on globe with normalized spherical longitude
   const flyTo = useCallback((lat: number, lon: number) => {
-    targetRotationRef.current = [-lon, -Math.max(-75, Math.min(75, lat)), 0];
+    let targetYaw = -lon;
+    while (targetYaw > 180) targetYaw -= 360;
+    while (targetYaw < -180) targetYaw += 360;
+    targetRotationRef.current = [targetYaw, -Math.max(-75, Math.min(75, lat)), 0];
   }, []);
 
   // Jump to next / prev signal
@@ -212,7 +213,10 @@ export function SwarmGlobeAtlas({
         let dy = ((diffYaw + 180) % 360) - 180;
         if (dy < -180) dy += 360;
 
-        const nextYaw = cur[0] + dy * 0.08;
+        let nextYaw = cur[0] + dy * 0.08;
+        if (nextYaw > 180) nextYaw -= 360;
+        else if (nextYaw < -180) nextYaw += 360;
+
         const nextPitch = cur[1] + diffPitch * 0.08;
 
         if (Math.abs(dy) < 0.2 && Math.abs(diffPitch) < 0.2) {
@@ -221,11 +225,12 @@ export function SwarmGlobeAtlas({
         } else {
           rotationRef.current = [nextYaw, nextPitch, 0];
         }
-        setRotation(rotationRef.current);
       } else if (isOrbitingRef.current && !isDraggingRef.current) {
-        // Continuous gentle auto-orbit
+        // Continuous gentle auto-orbit (full seamless 360 degree planetary rotation!)
         const speedFactor = swarmSpeedRef.current / 100;
-        const nextYaw = (rotationRef.current[0] + 0.12 * speedFactor) % 360;
+        let nextYaw = rotationRef.current[0] + 0.15 * speedFactor;
+        if (nextYaw > 180) nextYaw -= 360;
+        else if (nextYaw < -180) nextYaw += 360;
         rotationRef.current = [nextYaw, rotationRef.current[1], 0];
       }
 
@@ -465,11 +470,12 @@ export function SwarmGlobeAtlas({
 
     const sensitivity = 0.35;
     const cur = rotationRef.current;
-    const nextYaw = (cur[0] + dx * sensitivity) % 360;
+    let nextYaw = cur[0] + dx * sensitivity;
+    if (nextYaw > 180) nextYaw -= 360;
+    else if (nextYaw < -180) nextYaw += 360;
     const nextPitch = Math.max(-85, Math.min(85, cur[1] - dy * sensitivity));
 
     rotationRef.current = [nextYaw, nextPitch, 0];
-    setRotation(rotationRef.current);
   };
 
   const handleMouseUp = () => {
