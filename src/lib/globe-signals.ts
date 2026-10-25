@@ -78,49 +78,37 @@ const MALICIOUS_CAMPAIGN_VECTORS: Record<
 };
 
 /**
- * Checks whether an incident is genuinely a malicious AI swarm attacking world networks,
- * as opposed to a normal news report, lawsuit, research benchmark, or benign experiment.
+ * Checks whether an incident is genuinely a confirmed malicious AI swarm attacking world networks.
+ * STRICT USER REQUIREMENT: Only SWARM CONFIRMED incidents (is_confirmed_swarm === true)
+ * receive the attack beam. If it is merely "REPORTED", NO attack beam is drawn—only highlight location!
  */
 function isMaliciousSwarmIncident(inc: EnrichedIncident): boolean {
-  // Benign research papers, benchmarks, and experiments are never malicious attacks
-  if (inc.primary_category === 'benign_research_activity') return false;
+  // CRITICAL USER RULE: ONLY CONFIRMED SWARMS get the attack beam!
+  // If it's just "REPORTED" (is_confirmed_swarm === false), no attack beam, only highlight location!
+  if (!inc.is_confirmed_swarm) {
+    return false;
+  }
 
+  // Benign research activity (even if multi-agent swarm experiment) is legitimate research, not an attack
+  if (inc.primary_category === 'benign_research_activity') {
+    return false;
+  }
+
+  // Normal legal lawsuits, partnerships, policy announcements are not attacks
   const titleLower = inc.title.toLowerCase();
   const summaryLower = (inc.summary || '').toLowerCase();
   const combined = titleLower + ' ' + summaryLower;
-
-  // Lawsuits, legal complaints, partnerships, and policy announcements are normal reports
   if (
     combined.includes('lawsuit') ||
     combined.includes('sues') ||
     combined.includes('sued') ||
     combined.includes('partner') ||
-    combined.includes('harness') ||
     combined.includes('governance')
   ) {
     return false;
   }
 
-  // Active cyber operations and malware/intrusion campaigns
-  if (inc.primary_category === 'ai_driven_cyber_operations') return true;
-
-  // Agent infrastructure abuse or mass social manipulation botnets with high severity
-  if (
-    (inc.primary_category === 'agent_infrastructure_abuse' ||
-      inc.primary_category === 'ai_social_manipulation') &&
-    (inc.severity === 'critical' || inc.severity === 'high' || inc.is_confirmed_swarm)
-  ) {
-    return true;
-  }
-
-  // Keywords indicating active malicious campaign
-  for (const key of Object.keys(MALICIOUS_CAMPAIGN_VECTORS)) {
-    if (combined.includes(key)) {
-      return true;
-    }
-  }
-
-  return false;
+  return true;
 }
 
 /**

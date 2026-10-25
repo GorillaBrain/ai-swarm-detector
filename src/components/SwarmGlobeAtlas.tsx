@@ -310,9 +310,12 @@ export function SwarmGlobeAtlas({
       }
 
       // 4. Malicious AI Swarm Attack Trajectories & Swarm Particle Streams
-      // ONLY rendered for genuine malicious AI swarms attacking target networks (never for normal reports!)
+      // STRICT USER RULE: ONLY SWARM CONFIRMED incidents (isConfirmedSwarm === true) get the attack beam!
+      // If it's just "REPORTED", NO attack beam is drawn—only highlight location!
       for (const sig of signals) {
-        if (!sig.isMaliciousSwarm || !sig.targetLat || !sig.targetLon) continue;
+        if (!sig.isConfirmedSwarm || !sig.isMaliciousSwarm || !sig.targetLat || !sig.targetLon) {
+          continue;
+        }
 
         const isCurrent = sig.id === selectedSignalId;
 
@@ -726,11 +729,11 @@ export function SwarmGlobeAtlas({
             {activeSignal && (
               <div className="absolute top-4 left-4 p-3 rounded bg-[#080c16]/85 backdrop-blur border border-[#1e2538] max-w-sm pointer-events-none space-y-1.5 shadow-2xl z-10">
                 <div className="flex items-center gap-2">
-                  {activeSignal.isMaliciousSwarm && activeSignal.targetName ? (
+                  {activeSignal.isConfirmedSwarm && activeSignal.isMaliciousSwarm && activeSignal.targetName ? (
                     <>
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                       <span className="text-[10px] font-mono tracking-widest text-red-400 uppercase font-semibold">
-                        MALICIOUS AI SWARM ATTACK VECTOR
+                        CONFIRMED MALICIOUS SWARM ATTACK VECTOR
                       </span>
                     </>
                   ) : (
@@ -743,7 +746,7 @@ export function SwarmGlobeAtlas({
                   )}
                 </div>
                 <div className="text-xs font-semibold text-slate-100">
-                  {activeSignal.isMaliciousSwarm && activeSignal.targetName ? (
+                  {activeSignal.isConfirmedSwarm && activeSignal.isMaliciousSwarm && activeSignal.targetName ? (
                     <>
                       {activeSignal.originName || activeSignal.countryName}
                       <span className="text-red-400 font-mono"> → {activeSignal.targetName}</span>
