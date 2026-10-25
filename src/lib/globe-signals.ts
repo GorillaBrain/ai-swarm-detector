@@ -13,6 +13,7 @@ export interface GlobeSignal {
   severity: string;
   verification: string;
   isConfirmedSwarm: boolean;
+  isMaliciousSwarm: boolean;
   category: string;
   agentCount: number | null;
   targetLat?: number;
@@ -21,39 +22,106 @@ export interface GlobeSignal {
   originName?: string;
 }
 
-// Known origin -> target attack vector pairings for high-profile agentic campaigns
-const ATTACK_VECTORS: Record<string, { originCode: string; originName: string; targetCode: string; targetName: string }> = {
+// Documented origin -> target attack vector pairings for high-profile malicious agentic campaigns
+const MALICIOUS_CAMPAIGN_VECTORS: Record<
+  string,
+  { originName: string; targetLat: number; targetLon: number; targetName: string }
+> = {
   'storm-0940': {
-    originCode: 'CN',
-    originName: 'Beijing Attribution Node, CN',
-    targetCode: 'US',
-    targetName: 'ConnectWise Ops, Tampa FL, US',
+    originName: 'Beijing State-Sponsored Node, CN',
+    targetLat: 27.95,
+    targetLon: -82.45,
+    targetName: 'ConnectWise Managed Infrastructure, Tampa FL, US',
   },
   'artex': {
-    originCode: 'CN',
     originName: 'Beijing Attribution Node, CN',
-    targetCode: 'US',
-    targetName: 'US Technology Infrastructure',
+    targetLat: 38.9,
+    targetLon: -77.03,
+    targetName: 'US Technology & Defense Sector, Washington DC, US',
   },
-  'disinformation': {
-    originCode: 'RU',
-    originName: 'St. Petersburg Node, RU',
-    targetCode: 'GB',
-    targetName: 'London Media & Public Sector, UK',
+  'ransomware': {
+    originName: 'Eastern European Threat Group, RU',
+    targetLat: 50.11,
+    targetLon: 8.68,
+    targetName: 'Global Cloud Enterprise Infrastructure, Frankfurt, DE',
+  },
+  'openclaw': {
+    originName: 'Adversarial Agent Operator',
+    targetLat: 37.38,
+    targetLon: -122.08,
+    targetName: 'Silicon Valley Cloud API Gateway, US',
+  },
+  'destructive': {
+    originName: 'Hostile Cyber Actor',
+    targetLat: 40.71,
+    targetLon: -74.0,
+    targetName: 'Financial Network Core, New York, US',
   },
   'lazarus': {
-    originCode: 'KP',
-    originName: 'Pyongyang Lazarus Node, KP',
-    targetCode: 'KR',
-    targetName: 'Seoul Financial Sector, KR',
+    originName: 'Pyongyang Cyber Command, KP',
+    targetLat: 35.67,
+    targetLon: 139.65,
+    targetName: 'Tokyo Cryptocurrency & Banking Core, JP',
   },
-  'mcp': {
-    originCode: 'US',
-    originName: 'San Francisco AI Lab, US',
-    targetCode: 'DE',
-    targetName: 'Frankfurt Cloud Gateway, DE',
+  'disinformation': {
+    originName: 'Doppelganger Coordinated Bot Farm, RU',
+    targetLat: 51.5,
+    targetLon: -0.12,
+    targetName: 'London Media & Public Sector Networks, UK',
+  },
+  'volt typhoon': {
+    originName: 'Fuzhou Attribution Node, CN',
+    targetLat: 13.44,
+    targetLon: 144.79,
+    targetName: 'Pacific Communications & Military Node, Guam',
   },
 };
+
+/**
+ * Checks whether an incident is genuinely a malicious AI swarm attacking world networks,
+ * as opposed to a normal news report, lawsuit, research benchmark, or benign experiment.
+ */
+function isMaliciousSwarmIncident(inc: EnrichedIncident): boolean {
+  // Benign research papers, benchmarks, and experiments are never malicious attacks
+  if (inc.primary_category === 'benign_research_activity') return false;
+
+  const titleLower = inc.title.toLowerCase();
+  const summaryLower = (inc.summary || '').toLowerCase();
+  const combined = titleLower + ' ' + summaryLower;
+
+  // Lawsuits, legal complaints, partnerships, and policy announcements are normal reports
+  if (
+    combined.includes('lawsuit') ||
+    combined.includes('sues') ||
+    combined.includes('sued') ||
+    combined.includes('partner') ||
+    combined.includes('harness') ||
+    combined.includes('governance')
+  ) {
+    return false;
+  }
+
+  // Active cyber operations and malware/intrusion campaigns
+  if (inc.primary_category === 'ai_driven_cyber_operations') return true;
+
+  // Agent infrastructure abuse or mass social manipulation botnets with high severity
+  if (
+    (inc.primary_category === 'agent_infrastructure_abuse' ||
+      inc.primary_category === 'ai_social_manipulation') &&
+    (inc.severity === 'critical' || inc.severity === 'high' || inc.is_confirmed_swarm)
+  ) {
+    return true;
+  }
+
+  // Keywords indicating active malicious campaign
+  for (const key of Object.keys(MALICIOUS_CAMPAIGN_VECTORS)) {
+    if (combined.includes(key)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 /**
  * Builds a deterministic list of geographically mapped signals from stored incidents.
@@ -85,37 +153,47 @@ export function buildGlobeSignals(incidents: EnrichedIncident[]): GlobeSignal[] 
       // Deterministic slight offset for visual constellation
       const seed = (inc.id.charCodeAt(0) + inc.id.charCodeAt(inc.id.length - 1)) % 10;
       lat += (seed - 5) * 0.4;
-      lon += ((seed * 7) % 10 - 5) * 0.4;
+      lon += (((seed * 7) % 10) - 5) * 0.4;
     }
 
-    // Check if incident title matches known attack vectors
+    // Determine if this is a genuine malicious AI swarm attack
+    const isMalicious = isMaliciousSwarmIncident(inc);
+
     let targetLat: number | undefined;
     let targetLon: number | undefined;
     let targetName: string | undefined;
     let originName: string | undefined;
 
-    const titleLower = inc.title.toLowerCase();
-    for (const [key, vector] of Object.entries(ATTACK_VECTORS)) {
-      if (titleLower.includes(key)) {
-        const targetGeo = COUNTRY_CENTROIDS[vector.targetCode];
-        if (targetGeo) {
-          targetLat = targetGeo.latitude;
-          targetLon = targetGeo.longitude;
+    // ONLY malicious AI swarm incidents receive attack vectors pointing to target network infrastructure
+    if (isMalicious) {
+      const titleLower = inc.title.toLowerCase();
+
+      // Check for specific campaign match
+      for (const [key, vector] of Object.entries(MALICIOUS_CAMPAIGN_VECTORS)) {
+        if (titleLower.includes(key)) {
+          targetLat = vector.targetLat;
+          targetLon = vector.targetLon;
           targetName = vector.targetName;
           originName = vector.originName;
+          break;
         }
-        break;
       }
-    }
 
-    // Default target for cyber operations if not explicitly matched
-    if (!targetLat && inc.primary_category === 'ai_driven_cyber_operations') {
-      const defaultTarget = COUNTRY_CENTROIDS[code === 'US' ? 'DE' : 'US'];
-      if (defaultTarget) {
-        targetLat = defaultTarget.latitude;
-        targetLon = defaultTarget.longitude;
-        targetName = `${defaultTarget.name} Enterprise Target`;
-        originName = `${geo.name} Incursion Vector`;
+      // Default malicious target hub for other confirmed cyber operations
+      if (!targetLat) {
+        if (code === 'CN' || code === 'RU' || code === 'KP' || code === 'IR') {
+          // Point toward Western/Global critical digital infrastructure
+          targetLat = 38.9;
+          targetLon = -77.03;
+          targetName = 'US Cloud & Government Infrastructure, Washington DC';
+          originName = `${geo.name} Attribution Origin`;
+        } else {
+          // Point toward European/Global cloud infrastructure
+          targetLat = 50.11;
+          targetLon = 8.68;
+          targetName = 'European Interconnection Gateway, Frankfurt, DE';
+          originName = `${geo.name} Hostile Origin`;
+        }
       }
     }
 
@@ -131,6 +209,7 @@ export function buildGlobeSignals(incidents: EnrichedIncident[]): GlobeSignal[] 
       severity: inc.severity,
       verification: inc.verification_status,
       isConfirmedSwarm: inc.is_confirmed_swarm,
+      isMaliciousSwarm: isMalicious,
       category: inc.primary_category,
       agentCount: inc.reported_agent_count,
       targetLat,

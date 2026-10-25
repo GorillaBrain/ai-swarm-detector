@@ -309,21 +309,22 @@ export function SwarmGlobeAtlas({
         }
       }
 
-      // 4. Swarm Attack Trajectories & Swarm Particle Streams
-      // Render arcs for active signal or prominent attack vectors
+      // 4. Malicious AI Swarm Attack Trajectories & Swarm Particle Streams
+      // ONLY rendered for genuine malicious AI swarms attacking target networks (never for normal reports!)
       for (const sig of signals) {
+        if (!sig.isMaliciousSwarm || !sig.targetLat || !sig.targetLon) continue;
+
         const isCurrent = sig.id === selectedSignalId;
-        if (!isCurrent && !sig.targetLat) continue;
 
         const originLat = sig.lat;
         const originLon = sig.lon;
-        const targetLat = sig.targetLat ?? sig.lat;
-        const targetLon = sig.targetLon ?? (sig.lon + 45);
+        const targetLat = sig.targetLat;
+        const targetLon = sig.targetLon;
 
         // Compute great-circle interpolation
         const interpolator = geoInterpolate([originLon, originLat], [targetLon, targetLat]);
 
-        // Draw great-circle trajectory arc
+        // Draw great-circle trajectory arc in vivid crimson red
         ctx.beginPath();
         const numSteps = 40;
         let arcVisible = false;
@@ -344,58 +345,63 @@ export function SwarmGlobeAtlas({
 
         if (arcVisible) {
           ctx.strokeStyle = isCurrent
-            ? 'rgba(239, 68, 68, 0.75)'
-            : 'rgba(34, 211, 238, 0.4)';
-          ctx.lineWidth = isCurrent ? 2 : 1.2;
-          ctx.setLineDash(isCurrent ? [4, 3] : [2, 4]);
+            ? 'rgba(239, 68, 68, 0.95)'
+            : 'rgba(239, 68, 68, 0.55)';
+          ctx.lineWidth = isCurrent ? 2.2 : 1.4;
+          ctx.setLineDash(isCurrent ? [5, 3] : [3, 4]);
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // Animated swarm agent particles streaming along the attack arc
-          const numParticles = isCurrent ? 4 : 2;
+          // Animated glowing red swarm agent particles streaming along the attack arc
+          const numParticles = isCurrent ? 5 : 3;
           for (let p = 0; p < numParticles; p++) {
             const particleT = (particlePhaseRef.current + p / numParticles) % 1;
             const [pLon, pLat] = interpolator(particleT);
             const pt = projection([pLon, pLat]);
             if (pt) {
               ctx.beginPath();
-              ctx.arc(pt[0], pt[1], isCurrent ? 3.5 : 2, 0, Math.PI * 2);
-              ctx.fillStyle = isCurrent ? '#fca5a5' : '#a5f3fc';
-              ctx.shadowColor = isCurrent ? '#ef4444' : '#22d3ee';
-              ctx.shadowBlur = 8;
+              ctx.arc(pt[0], pt[1], isCurrent ? 3.5 : 2.5, 0, Math.PI * 2);
+              ctx.fillStyle = isCurrent ? '#fca5a5' : '#ef4444';
+              ctx.shadowColor = '#ef4444';
+              ctx.shadowBlur = isCurrent ? 10 : 6;
               ctx.fill();
               ctx.shadowBlur = 0;
             }
           }
         }
 
-        // Concentric target impact rings on the area being attacked ("like the swarm is attacking certain area")
-        if (isCurrent && sig.targetLat) {
+        // Concentric target impact rings on the area being attacked by the malicious swarm
+        if (targetLat && targetLon) {
           const targetPt = projection([targetLon, targetLat]);
           if (targetPt) {
             const pulse = (Date.now() % 1600) / 1600;
-            const pulseRadius = 8 + pulse * 28;
+            const pulseRadius = 6 + pulse * (isCurrent ? 28 : 18);
 
             ctx.beginPath();
             ctx.arc(targetPt[0], targetPt[1], pulseRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(239, 68, 68, ${1 - pulse})`;
-            ctx.lineWidth = 1.8;
+            ctx.strokeStyle = `rgba(239, 68, 68, ${(1 - pulse) * (isCurrent ? 0.9 : 0.5)})`;
+            ctx.lineWidth = isCurrent ? 2 : 1.2;
             ctx.stroke();
 
             ctx.beginPath();
-            ctx.arc(targetPt[0], targetPt[1], 4, 0, Math.PI * 2);
+            ctx.arc(targetPt[0], targetPt[1], isCurrent ? 4 : 2.5, 0, Math.PI * 2);
             ctx.fillStyle = '#ef4444';
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 8;
             ctx.fill();
+            ctx.shadowBlur = 0;
 
-            // Target area crosshairs
-            ctx.beginPath();
-            ctx.moveTo(targetPt[0] - 10, targetPt[1]);
-            ctx.lineTo(targetPt[0] + 10, targetPt[1]);
-            ctx.moveTo(targetPt[0], targetPt[1] - 10);
-            ctx.lineTo(targetPt[0], targetPt[1] + 10);
-            ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            // Target area crosshairs for active selected attack
+            if (isCurrent) {
+              ctx.beginPath();
+              ctx.moveTo(targetPt[0] - 10, targetPt[1]);
+              ctx.lineTo(targetPt[0] + 10, targetPt[1]);
+              ctx.moveTo(targetPt[0], targetPt[1] - 10);
+              ctx.lineTo(targetPt[0], targetPt[1] + 10);
+              ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
           }
         }
       }
@@ -716,19 +722,34 @@ export function SwarmGlobeAtlas({
               className="w-full h-full block"
             />
 
-            {/* Tactical Swarm Origin -> Target HUD Overlay */}
+            {/* Tactical Incident & Attack Vector HUD Overlay */}
             {activeSignal && (
               <div className="absolute top-4 left-4 p-3 rounded bg-[#080c16]/85 backdrop-blur border border-[#1e2538] max-w-sm pointer-events-none space-y-1.5 shadow-2xl z-10">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                  <span className="text-[10px] font-mono tracking-widest text-red-400 uppercase font-semibold">
-                    SWARM INCURSION VECTOR
-                  </span>
+                  {activeSignal.isMaliciousSwarm && activeSignal.targetName ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-[10px] font-mono tracking-widest text-red-400 uppercase font-semibold">
+                        MALICIOUS AI SWARM ATTACK VECTOR
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                      <span className="text-[10px] font-mono tracking-widest text-indigo-300 uppercase font-semibold">
+                        INTELLIGENCE INCIDENT LOCATION
+                      </span>
+                    </>
+                  )}
                 </div>
                 <div className="text-xs font-semibold text-slate-100">
-                  {activeSignal.originName || activeSignal.countryName}
-                  {activeSignal.targetName && (
-                    <span className="text-red-400 font-mono"> → {activeSignal.targetName}</span>
+                  {activeSignal.isMaliciousSwarm && activeSignal.targetName ? (
+                    <>
+                      {activeSignal.originName || activeSignal.countryName}
+                      <span className="text-red-400 font-mono"> → {activeSignal.targetName}</span>
+                    </>
+                  ) : (
+                    <span>{activeSignal.countryName}</span>
                   )}
                 </div>
                 <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
@@ -742,7 +763,9 @@ export function SwarmGlobeAtlas({
                   <span>
                     {activeSignal.agentCount
                       ? `${activeSignal.agentCount} Agents Documented`
-                      : 'Multi-Agent Swarm'}
+                      : activeSignal.isConfirmedSwarm
+                        ? 'Confirmed Multi-Agent Swarm'
+                        : 'Reported Incident'}
                   </span>
                 </div>
               </div>
