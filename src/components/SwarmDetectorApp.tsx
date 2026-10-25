@@ -47,6 +47,7 @@ import {
 import { GlobalIncidentMap } from './GlobalIncidentMap';
 import { LiveIntelligenceFeed } from './LiveIntelligenceFeed';
 import { IncidentInvestigationView } from './IncidentInvestigationView';
+import { SwarmGlobeAtlas } from './SwarmGlobeAtlas';
 import {
   OrganizationsAndActorsPanel,
   SettingsPanel,
@@ -57,6 +58,7 @@ import {
 } from './OperationsPanels';
 
 export type NavTab =
+  | 'globe'
   | 'overview'
   | 'feed'
   | 'map'
@@ -80,7 +82,7 @@ export function SwarmDetectorApp({
   initialIncidents,
   initialSources,
 }: SwarmDetectorAppProps) {
-  const [activeTab, setActiveTab] = useState<NavTab>('overview');
+  const [activeTab, setActiveTab] = useState<NavTab>('globe');
   const [mode, setMode] = useState<OperatingMode>('live');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
@@ -92,7 +94,7 @@ export function SwarmDetectorApp({
 
   const [selectedIncident, setSelectedIncident] =
     useState<EnrichedIncident | null>(null);
-  const [previousTab, setPreviousTab] = useState<NavTab>('overview');
+  const [previousTab, setPreviousTab] = useState<NavTab>('globe');
 
   // Drill-down filter state when clicking metrics/charts/map
   const [drillCategory, setDrillCategory] = useState<SwarmCategory | ''>('');
@@ -294,6 +296,12 @@ export function SwarmDetectorApp({
     icon: React.ComponentType<{ className?: string }>;
     badge?: string | number;
   }> = [
+    {
+      id: 'globe',
+      label: '3D Swarm Atlas',
+      icon: Globe,
+      badge: '3D LIVE',
+    },
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     {
       id: 'feed',
@@ -301,14 +309,14 @@ export function SwarmDetectorApp({
       icon: Radio,
       badge: metrics.totalUniqueIncidents,
     },
-    { id: 'map', label: 'Global Incident Map', icon: Globe },
+    { id: 'map', label: '2D Tactical Map', icon: Compass },
     { id: 'explorer', label: 'Incident Explorer', icon: FileSearch },
     { id: 'analytics', label: 'Threat Analytics', icon: BarChart3 },
     { id: 'entities', label: 'Organizations & Actors', icon: Building2 },
     {
       id: 'sources',
       label: 'Sources & Reliability',
-      icon: Compass,
+      icon: Database,
       badge: `${systemStatus.healthySourcesCount || 0}/${
         systemStatus.monitoredSourcesCount || 0
       }`,
@@ -344,7 +352,7 @@ export function SwarmDetectorApp({
             </button>
 
             <div
-              onClick={() => setActiveTab('overview')}
+              onClick={() => setActiveTab('globe')}
               className="flex items-center gap-2.5 cursor-pointer"
             >
               <div className="w-7 h-7 rounded bg-cyan-950 border border-cyan-600/70 flex items-center justify-center">
@@ -558,12 +566,31 @@ export function SwarmDetectorApp({
         </aside>
 
         {/* MAIN CONTENT AREA */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-          {/* ============================================================== */}
-          {/* VIEW 1: OVERVIEW DASHBOARD (Section 5)                         */}
-          {/* ============================================================== */}
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
+        {activeTab === 'globe' ? (
+          <div className="flex-1 h-full overflow-hidden">
+            <SwarmGlobeAtlas
+              incidents={incidents}
+              mode={mode}
+              onOpenDossier={(inc) => openIncidentInvestigation(inc)}
+              onOpenView={(tab) => {
+                if (tab === 'feed') setActiveTab('feed');
+                else if (tab === 'analytics') setActiveTab('analytics');
+                else if (tab === 'entities') setActiveTab('entities');
+                else if (tab === 'sources') setActiveTab('sources');
+                else if (tab === 'health') setActiveTab('health');
+                else if (tab === 'overview') setActiveTab('overview');
+                else if (tab === 'map') setActiveTab('map');
+                else setActiveTab('feed');
+              }}
+            />
+          </div>
+        ) : (
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+            {/* ============================================================== */}
+            {/* VIEW 1: OVERVIEW DASHBOARD (Section 5)                         */}
+            {/* ============================================================== */}
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
               {/* 7 Calculated Intelligence Metrics Row */}
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-7 gap-3">
                 <div
@@ -677,14 +704,29 @@ export function SwarmDetectorApp({
               </div>
 
               {/* Panel 1: Global Incident Map */}
-              <GlobalIncidentMap
-                incidents={incidents}
-                compact
-                onSelectIncident={(inc) => openIncidentInvestigation(inc)}
-                onFilterByCountry={(code) =>
-                  openFilteredExplorer({ country: code })
-                }
-              />
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-mono uppercase text-slate-400">
+                    Geographic Telemetry & Incursion Vectors
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('globe')}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono bg-indigo-950/90 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/60 rounded transition shadow-sm"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Launch 3D Swarm Globe Atlas (Rotatable) →</span>
+                  </button>
+                </div>
+                <GlobalIncidentMap
+                  incidents={incidents}
+                  compact
+                  onSelectIncident={(inc) => openIncidentInvestigation(inc)}
+                  onFilterByCountry={(code) =>
+                    openFilteredExplorer({ country: code })
+                  }
+                />
+              </div>
 
               {/* Panels 2, 3, 4, 5: Chronological Feed + Analytics Breakdown */}
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
@@ -1018,14 +1060,29 @@ export function SwarmDetectorApp({
           {/* VIEW 3: GLOBAL INCIDENT MAP                                    */}
           {/* ============================================================== */}
           {activeTab === 'map' && (
-            <GlobalIncidentMap
-              incidents={incidents}
-              compact={false}
-              onSelectIncident={(inc) => openIncidentInvestigation(inc)}
-              onFilterByCountry={(code) =>
-                openFilteredExplorer({ country: code })
-              }
-            />
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-mono uppercase text-slate-400">
+                  2D Tactical Mercator View
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('globe')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-indigo-950 text-indigo-300 hover:bg-indigo-900 border border-indigo-700/70 rounded transition shadow-sm"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Switch to 3D Swarm Globe Atlas (Rotatable)</span>
+                </button>
+              </div>
+              <GlobalIncidentMap
+                incidents={incidents}
+                compact={false}
+                onSelectIncident={(inc) => openIncidentInvestigation(inc)}
+                onFilterByCountry={(code) =>
+                  openFilteredExplorer({ country: code })
+                }
+              />
+            </div>
           )}
 
           {/* ============================================================== */}
@@ -1111,7 +1168,8 @@ export function SwarmDetectorApp({
             />
           )}
         </main>
-      </div>
+      )}
+    </div>
     </div>
   );
 }

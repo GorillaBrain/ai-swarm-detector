@@ -329,6 +329,90 @@ const COUNTRY_DETECTION_PATTERNS: Array<{
     region: 'East Asia',
     basis: 'occurrence_location',
   },
+  {
+    pattern: /\b(South Korea|Korean|Seoul|KISA)\b/i,
+    code: 'KR',
+    name: 'South Korea',
+    region: 'East Asia',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(Taiwan|Taiwanese|Taipei)\b/i,
+    code: 'TW',
+    name: 'Taiwan',
+    region: 'East Asia',
+    basis: 'targeted_location',
+  },
+  {
+    pattern: /\b(India|Indian|Bengaluru|New Delhi)\b/i,
+    code: 'IN',
+    name: 'India',
+    region: 'South Asia',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(Canada|Canadian|Toronto|Montreal|Ottawa)\b/i,
+    code: 'CA',
+    name: 'Canada',
+    region: 'North America',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(Australia|Australian|Sydney|Melbourne|Canberra)\b/i,
+    code: 'AU',
+    name: 'Australia',
+    region: 'Oceania',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(France|French|Paris|ANSSI)\b/i,
+    code: 'FR',
+    name: 'France',
+    region: 'Europe',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(Netherlands|Dutch|Amsterdam|Hague)\b/i,
+    code: 'NL',
+    name: 'Netherlands',
+    region: 'Europe',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(Switzerland|Swiss|Zurich|Geneva)\b/i,
+    code: 'CH',
+    name: 'Switzerland',
+    region: 'Europe',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(Brazil|Brazilian|Paulo)\b/i,
+    code: 'BR',
+    name: 'Brazil',
+    region: 'South America',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(Sweden|Swedish|Stockholm)\b/i,
+    code: 'SE',
+    name: 'Sweden',
+    region: 'Europe',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(Poland|Polish|Warsaw)\b/i,
+    code: 'PL',
+    name: 'Poland',
+    region: 'Europe',
+    basis: 'targeted_location',
+  },
+  {
+    pattern: /\b(Greenland|Nuuk|Arctic)\b/i,
+    code: 'GL',
+    name: 'Greenland',
+    region: 'Arctic / North Atlantic',
+    basis: 'occurrence_location',
+  },
 ];
 
 /**
@@ -479,6 +563,20 @@ export function classifyWithRuleEngine(
     regionName = 'Global / Multi-Region';
     locationPrecision = 'global';
     locationBasis = 'targeted_location';
+  } else if (
+    !countryCode &&
+    (article.sourceSlug === 'mitre-atlas' ||
+      article.sourceSlug === 'microsoft-security-blog' ||
+      article.sourceSlug === 'cisa-advisories' ||
+      article.sourceSlug === 'metr-research' ||
+      article.sourceSlug === 'openai-security' ||
+      article.sourceSlug === 'google-security-blog')
+  ) {
+    countryCode = 'US';
+    countryName = 'United States';
+    regionName = 'North America';
+    locationPrecision = 'country';
+    locationBasis = 'reporting_org_only';
   }
 
   // Extract entities
