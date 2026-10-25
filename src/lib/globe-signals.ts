@@ -75,6 +75,18 @@ const MALICIOUS_CAMPAIGN_VECTORS: Record<
     targetLon: 144.79,
     targetName: 'Pacific Communications & Military Node, Guam',
   },
+  'hugging face': {
+    originName: 'San Francisco Autonomous Agent Fleet, US',
+    targetLat: 40.71,
+    targetLon: -74.0,
+    targetName: 'External Hugging Face Cloud Repositories, NY, US',
+  },
+  'distillation': {
+    originName: 'Frontier Model Extraction Swarm, Shanghai, CN',
+    targetLat: 37.77,
+    targetLon: -122.41,
+    targetName: 'Anthropic Claude Core Infrastructure, San Francisco, US',
+  },
 };
 
 /**

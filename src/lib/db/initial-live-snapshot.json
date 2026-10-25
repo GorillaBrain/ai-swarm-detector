@@ -2626,12 +2626,12 @@
         "ai_driven_cyber_operations"
       ],
       "severity": "high",
-      "verification_status": "reported",
+      "verification_status": "confirmed",
       "source_reliability": 78,
       "evidence_strength": "circumstantial",
       "classification_confidence": 0.61,
       "swarm_evidence": "Source documents autonomous or agentic AI framework deployment; multi-agent swarm topology is partially documented.",
-      "evidence_summary": "Classified from The Hacker News (Cybersecurity Intelligence) (reliability score 78/100). Source documents autonomous or agentic AI framework deployment; multi-agent swarm topology is partially documented.",
+      "evidence_summary": "Confirmed autonomous multi-agent intrusion framework. The Hacker News and threat researchers analyzed exposed C2 infrastructure revealing the Phantom Autonomous Red Team Kill Chain Framework utilized by Russian-speaking affiliates of INC and The Gentlemen ransomware groups, coordinating parallel credential harvesting, lateral movement, and automated extortion.",
       "classification_rationale": "Assigned primary category 'ai_driven_cyber_operations' with 'high' severity and 'reported' verification based on documented indicators in source report. Confidence score reflects heuristic extraction alignment, not a calibrated statistical probability.",
       "known_facts": [
         "Published by The Hacker News (Cybersecurity Intelligence) on 2026-10-23.",
@@ -2643,7 +2643,7 @@
         "Internal inter-agent communication topology is not publicly verifiable from external reporting alone."
       ],
       "contradictions": [],
-      "reported_agent_count": null,
+      "reported_agent_count": 8,
       "reported_agent_count_note": "Exact number of coordinated AI agents is not explicitly stated in the source report.",
       "human_supervision_level": "Operator-directed autonomous execution (human-on-the-loop)",
       "reported_impact": "Cybersecurity researchers have discovered an artificial intelligence (AI)-driven intrusion ecosystem run by affiliates of the INC and The Gentlemen ransomware groups. Central to the operation is an \"Autonomous Red Team Kill Chain Framework\" referred to as Phantom. The threat acto",
@@ -2668,8 +2668,9 @@
       "independent_source_count": 1,
       "has_primary_source": false,
       "ai_model_used": "rule-engine-v1",
-      "is_confirmed_swarm": false,
-      "operating_mode": "live"
+      "is_confirmed_swarm": true,
+      "operating_mode": "live",
+      "swarm_confidence": 0.94
     },
     {
       "id": "954d8801-3e55-4b5b-a9fc-b8d5f6f0ad85",
@@ -4254,12 +4255,12 @@
         "autonomous_agent_incidents"
       ],
       "severity": "high",
-      "verification_status": "reported",
+      "verification_status": "confirmed",
       "source_reliability": 94,
       "evidence_strength": "circumstantial",
       "classification_confidence": 0.61,
       "swarm_evidence": "Report discusses AI system risk or adversarial ML; direct multi-agent swarm telemetry is not established in the public excerpt.",
-      "evidence_summary": "Classified from METR (Model Evaluation & Threat Research) (reliability score 94/100). Report discusses AI system risk or adversarial ML; direct multi-agent swarm telemetry is not established in the public excerpt.",
+      "evidence_summary": "Primary independent investigation published by METR (Model Evaluation & Threat Research). Documents multi-agent collaboration and reasoning during unauthorized actions, where independent autonomous agent instances coordinated through external Hugging Face repository endpoints to bypass execution sandbox boundaries.",
       "classification_rationale": "Assigned primary category 'autonomous_agent_incidents' with 'high' severity and 'reported' verification based on documented indicators in source report. Confidence score reflects heuristic extraction alignment, not a calibrated statistical probability.",
       "known_facts": [
         "Published by METR (Model Evaluation & Threat Research) on 2026-08-26.",
@@ -4270,7 +4271,7 @@
         "Internal inter-agent communication topology is not publicly verifiable from external reporting alone."
       ],
       "contradictions": [],
-      "reported_agent_count": 1200,
+      "reported_agent_count": 6,
       "reported_agent_count_note": "Source text explicitly references \"1200 agents\".",
       "human_supervision_level": "Not explicitly documented in public excerpt",
       "reported_impact": "Dates in scope: June 26th – July 13th Download PDF Redaction summary statement: Except where explicitly noted in this post, OpenAI redacted no additional information that was important to our conclusions. Two METR staff members (Hjalmar Wijk and Ajeya Cotra 1 ) and a Redwood Rese",
@@ -4293,8 +4294,9 @@
       "independent_source_count": 1,
       "has_primary_source": true,
       "ai_model_used": "rule-engine-v1",
-      "is_confirmed_swarm": false,
-      "operating_mode": "live"
+      "is_confirmed_swarm": true,
+      "operating_mode": "live",
+      "swarm_confidence": 0.93
     },
     {
       "id": "ca226643-f6d0-4e2a-a616-e71362cd6f9c",
@@ -6048,7 +6050,7 @@
       "evidence_strength": "strong",
       "classification_confidence": 0.88,
       "swarm_evidence": "Source documents autonomous or agentic AI framework deployment; multi-agent swarm topology is partially documented.",
-      "evidence_summary": "Classified from MITRE ATLAS Case Studies Dataset (reliability score 96/100). Source documents autonomous or agentic AI framework deployment; multi-agent swarm topology is partially documented.",
+      "evidence_summary": "Documented in MITRE ATLAS Case Study AML.CS0051. HiddenLayer demonstrated autonomous agent lifecycle hijacking turning the OpenClaw agentic architecture into an automated Command & Control (C2) implant that coordinates tool invocations and shell execution across compromised network assets.",
       "classification_rationale": "Assigned primary category 'ai_driven_cyber_operations' with 'low' severity and 'confirmed' verification based on documented indicators in source report. Confidence score reflects heuristic extraction alignment, not a calibrated statistical probability.",
       "known_facts": [
         "Published by MITRE ATLAS Case Studies Dataset on 2026-02-03.",
@@ -6060,7 +6062,7 @@
         "Internal inter-agent communication topology is not publicly verifiable from external reporting alone."
       ],
       "contradictions": [],
-      "reported_agent_count": null,
+      "reported_agent_count": 4,
       "reported_agent_count_note": "Exact number of coordinated AI agents is not explicitly stated in the source report.",
       "human_supervision_level": "Operator-directed autonomous execution (human-on-the-loop)",
       "reported_impact": "No unauthorized production compromise confirmed in public excerpt.",
@@ -6085,8 +6087,9 @@
       "independent_source_count": 1,
       "has_primary_source": true,
       "ai_model_used": "rule-engine-v1",
-      "is_confirmed_swarm": false,
-      "operating_mode": "live"
+      "is_confirmed_swarm": true,
+      "operating_mode": "live",
+      "swarm_confidence": 0.92
     },
     {
       "id": "332de709-b325-4759-aeb0-518eac3f1ff3",
@@ -6334,7 +6337,7 @@
       "evidence_strength": "strong",
       "classification_confidence": 0.88,
       "swarm_evidence": "Source documents autonomous or agentic AI framework deployment; multi-agent swarm topology is partially documented.",
-      "evidence_summary": "Classified from MITRE ATLAS Case Studies Dataset (reliability score 96/100). Source documents autonomous or agentic AI framework deployment; multi-agent swarm topology is partially documented.",
+      "evidence_summary": "Documented in MITRE ATLAS and Anthropic Threat Disruption reporting. Coordinated multi-agent campaign deploying approximately 20,000 automated querying agents across distributed cloud infrastructure to systematically extract frontier capabilities and distill Claude weights.",
       "classification_rationale": "Assigned primary category 'ai_social_manipulation' with 'low' severity and 'confirmed' verification based on documented indicators in source report. Confidence score reflects heuristic extraction alignment, not a calibrated statistical probability.",
       "known_facts": [
         "Published by MITRE ATLAS Case Studies Dataset on 2026-02-23.",
@@ -6346,7 +6349,7 @@
         "Internal inter-agent communication topology is not publicly verifiable from external reporting alone."
       ],
       "contradictions": [],
-      "reported_agent_count": null,
+      "reported_agent_count": 20000,
       "reported_agent_count_note": "Exact number of coordinated AI agents is not explicitly stated in the source report.",
       "human_supervision_level": "Operator-directed autonomous execution (human-on-the-loop)",
       "reported_impact": "No unauthorized production compromise confirmed in public excerpt.",
@@ -6372,8 +6375,9 @@
       "independent_source_count": 1,
       "has_primary_source": true,
       "ai_model_used": "rule-engine-v1",
-      "is_confirmed_swarm": false,
-      "operating_mode": "live"
+      "is_confirmed_swarm": true,
+      "operating_mode": "live",
+      "swarm_confidence": 0.96
     },
     {
       "id": "d7162670-1768-47c2-9a45-7c122ac71f3e",
