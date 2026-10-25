@@ -748,20 +748,6 @@ export function SwarmGlobeAtlas({
               </div>
             )}
 
-            {/* Focus & Zoom Status Badge at Top-Center */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
-              {isPlanetFocused ? (
-                <div className="px-3 py-1 rounded-full bg-indigo-950/95 border border-indigo-500/80 text-indigo-200 text-[11px] font-mono shadow-2xl flex items-center gap-2 backdrop-blur">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>Planet Active • Scroll wheel to zoom • Click outside or ESC to release</span>
-                </div>
-              ) : (
-                <div className="px-3 py-1 rounded-full bg-[#0a0f1d]/85 border border-[#212b42] text-slate-400 text-[11px] font-mono shadow-lg flex items-center gap-1.5 backdrop-blur">
-                  <span>Click planet to enable scroll zoom</span>
-                </div>
-              )}
-            </div>
-
             {/* Manual Zoom Controls on Top-Right */}
             <div className="absolute top-4 right-4 flex flex-col gap-1.5 z-10">
               <button
