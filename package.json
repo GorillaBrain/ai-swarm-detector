@@ -1,0 +1,40 @@
+{
+  "name": "ai-swarm-detector",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "seed": "tsx scripts/seed-and-ingest.ts",
+    "ingest": "tsx scripts/seed-and-ingest.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.31.0",
+    "@supabase/supabase-js": "^2.100.1",
+    "clsx": "^2.1.1",
+    "fast-xml-parser": "^5.5.5",
+    "js-yaml": "^4.1.1",
+    "lucide-react": "^1.16.0",
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  }
+}
