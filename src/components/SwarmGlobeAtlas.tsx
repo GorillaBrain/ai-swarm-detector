@@ -28,6 +28,8 @@ import {
   Star,
   Volume2,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 
 interface SwarmGlobeAtlasProps {
@@ -76,6 +78,11 @@ export function SwarmGlobeAtlas({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'world' | 'swarms' | 'watchlist' | 'recent'>('world');
   const [starredIds, setStarredIds] = useState<Set<string>>(new Set());
+
+  // Planet Focus & Zoom lock (ONLY zoom when planet is clicked / focused)
+  const [isPlanetFocused, setIsPlanetFocused] = useState<boolean>(false);
+  const isPlanetFocusedRef = useRef<boolean>(false);
+  isPlanetFocusedRef.current = isPlanetFocused;
 
   // Mouse drag & interaction tracking
   const isDraggingRef = useRef<boolean>(false);
@@ -469,16 +476,72 @@ export function SwarmGlobeAtlas({
     isDraggingRef.current = false;
   };
 
-  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const zoomDelta = -e.deltaY * 0.2;
-    const nextScale = Math.max(160, Math.min(480, scaleRef.current + zoomDelta));
+  const zoomIn = () => {
+    const nextScale = Math.min(500, scaleRef.current + 40);
     scaleRef.current = nextScale;
     setScale(nextScale);
   };
 
-  // Click on globe to pick nearest signal or country
+  const zoomOut = () => {
+    const nextScale = Math.max(140, scaleRef.current - 40);
+    scaleRef.current = nextScale;
+    setScale(nextScale);
+  };
+
+  const resetZoom = () => {
+    scaleRef.current = 250;
+    setScale(250);
+  };
+
+  // Window click listener to unfocus planet when clicking outside & ESC key handler
+  useEffect(() => {
+    const handleWindowClick = (e: MouseEvent) => {
+      if (canvasRef.current && !canvasRef.current.contains(e.target as Node)) {
+        setIsPlanetFocused(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsPlanetFocused(false);
+      }
+    };
+    window.addEventListener('mousedown', handleWindowClick);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', handleWindowClick);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Non-passive wheel listener attached to canvas: ONLY zooms when planet is clicked / focused!
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onCanvasWheel = (e: WheelEvent) => {
+      if (!isPlanetFocusedRef.current) {
+        // Not focused - do not zoom the planet!
+        return;
+      }
+      // Planet is focused - zoom smoothly and block any window scrolling
+      e.preventDefault();
+      e.stopPropagation();
+
+      const zoomDelta = -e.deltaY * 0.25;
+      const nextScale = Math.max(140, Math.min(500, scaleRef.current + zoomDelta));
+      scaleRef.current = nextScale;
+      setScale(nextScale);
+    };
+
+    canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
+    return () => {
+      canvas.removeEventListener('wheel', onCanvasWheel);
+    };
+  }, []);
+
+  // Click on globe to pick nearest signal or country & activate focus for zoom
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsPlanetFocused(true);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -524,7 +587,7 @@ export function SwarmGlobeAtlas({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#05060b] text-slate-100 select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-full w-full min-h-0 overflow-hidden bg-[#05060b] text-slate-100 select-none font-sans">
       {/* ==================================================================== */}
       {/* TOP HEADER (Matching Radio Atlas header aesthetic)                  */}
       {/* ==================================================================== */}
@@ -626,25 +689,30 @@ export function SwarmGlobeAtlas({
       {/* ==================================================================== */}
       {/* MAIN TWO-COLUMN STAGE (Globe on Left, List on Right)                 */}
       {/* ==================================================================== */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0 relative">
         {/* LEFT / CENTER: 3D ROTATABLE GLOBE */}
-        <div className="flex-1 relative flex flex-col justify-between overflow-hidden bg-[#05060b]">
+        <div className="flex-1 relative flex flex-col justify-between overflow-hidden min-h-0 bg-[#05060b]">
           {/* Canvas Viewport */}
-          <div className="flex-1 relative cursor-grab active:cursor-grabbing w-full h-full">
+          <div
+            className={`flex-1 relative w-full h-full min-h-0 overflow-hidden ${
+              isPlanetFocused
+                ? 'cursor-grab active:cursor-grabbing ring-1 ring-indigo-500/40'
+                : 'cursor-pointer'
+            }`}
+          >
             <canvas
               ref={canvasRef}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
-              onWheel={handleWheel}
               onClick={handleCanvasClick}
               className="w-full h-full block"
             />
 
             {/* Tactical Swarm Origin -> Target HUD Overlay */}
             {activeSignal && (
-              <div className="absolute top-4 left-4 p-3 rounded bg-[#080c16]/85 backdrop-blur border border-[#1e2538] max-w-sm pointer-events-none space-y-1.5 shadow-2xl">
+              <div className="absolute top-4 left-4 p-3 rounded bg-[#080c16]/85 backdrop-blur border border-[#1e2538] max-w-sm pointer-events-none space-y-1.5 shadow-2xl z-10">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
                   <span className="text-[10px] font-mono tracking-widest text-red-400 uppercase font-semibold">
@@ -673,6 +741,57 @@ export function SwarmGlobeAtlas({
                 </div>
               </div>
             )}
+
+            {/* Focus & Zoom Status Badge at Top-Center */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
+              {isPlanetFocused ? (
+                <div className="px-3 py-1 rounded-full bg-indigo-950/95 border border-indigo-500/80 text-indigo-200 text-[11px] font-mono shadow-2xl flex items-center gap-2 backdrop-blur">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>Planet Active • Scroll wheel to zoom • Click outside or ESC to release</span>
+                </div>
+              ) : (
+                <div className="px-3 py-1 rounded-full bg-[#0a0f1d]/85 border border-[#212b42] text-slate-400 text-[11px] font-mono shadow-lg flex items-center gap-1.5 backdrop-blur">
+                  <span>Click planet to enable scroll zoom</span>
+                </div>
+              )}
+            </div>
+
+            {/* Manual Zoom Controls on Top-Right */}
+            <div className="absolute top-4 right-4 flex flex-col gap-1.5 z-10">
+              <button
+                type="button"
+                title="Zoom In"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  zoomIn();
+                }}
+                className="p-1.5 rounded bg-[#080c16]/90 hover:bg-[#151c2e] border border-[#21283d] text-slate-300 hover:text-white transition shadow-lg"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                title="Zoom Out"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  zoomOut();
+                }}
+                className="p-1.5 rounded bg-[#080c16]/90 hover:bg-[#151c2e] border border-[#21283d] text-slate-300 hover:text-white transition shadow-lg"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                title="Reset Zoom"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetZoom();
+                }}
+                className="p-1.5 rounded bg-[#080c16]/90 hover:bg-[#151c2e] border border-[#21283d] text-slate-400 hover:text-white transition shadow-lg text-[10px] font-mono text-center font-bold"
+              >
+                100%
+              </button>
+            </div>
           </div>
 
           {/* Bottom Globe Status Line (Matches "Greenland · click another country to browse  996 signals") */}
@@ -702,7 +821,7 @@ export function SwarmGlobeAtlas({
         {/* ================================================================== */}
         {/* RIGHT SIDEBAR: INCIDENT SIGNAL LIST & TELEMETRY PLAYER             */}
         {/* ================================================================== */}
-        <aside className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-[#1b2030] bg-[#070911] flex flex-col justify-between shrink-0 h-80 lg:h-full">
+        <aside className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-[#1b2030] bg-[#070911] flex flex-col justify-between shrink-0 h-72 lg:h-full min-h-0 overflow-hidden">
           {/* Tabs Header (World / Swarms / Watchlist / Recent) */}
           <div className="h-10 border-b border-[#1b2030] px-4 flex items-center gap-4 text-xs font-mono text-slate-400 shrink-0 bg-[#090c16]">
             {[
@@ -727,7 +846,7 @@ export function SwarmGlobeAtlas({
           </div>
 
           {/* Scrollable Incident Signals List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-[#151a28]">
+          <div className="flex-1 overflow-y-auto divide-y divide-[#151a28] min-h-0">
             {filteredSignals.length === 0 ? (
               <div className="p-8 text-center text-xs font-mono text-slate-500">
                 No signals match the current tab filter.
