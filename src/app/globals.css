@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #07090e;
-  --foreground: #f1f5f9;
+  --background: #080a0f;
+  --surface: #0c1017;
+  --surface-elevated: #111621;
+  --foreground: #f3f5f8;
+  --foreground-muted: #8a94a6;
+  --accent-gold: #f5b82e;
+  --alert-crimson: #ef4444;
+  --hairline: rgba(255, 255, 255, 0.07);
 }
 
 @theme inline {
@@ -10,10 +16,46 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.font-display {
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+}
+
+/* Subtle custom scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(138, 148, 166, 0.18);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 184, 46, 0.45);
+}
+
+/* Angled caution stripe pattern inspired by mission control reference */
+.bg-caution-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.04) 8px,
+    transparent 8px,
+    transparent 16px
+  );
 }

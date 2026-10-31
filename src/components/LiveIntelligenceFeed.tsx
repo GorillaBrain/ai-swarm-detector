@@ -2,20 +2,12 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Calendar,
   ChevronLeft,
   ChevronRight,
-  Clock,
   ExternalLink,
-  Filter,
-  Globe,
-  Pause,
-  Play,
-  Radio,
-  RefreshCw,
   RotateCcw,
   Search,
-  ShieldAlert,
+  SlidersHorizontal,
 } from 'lucide-react';
 import {
   EnrichedIncident,
@@ -30,7 +22,6 @@ import {
 } from '@/lib/types';
 import {
   CategoryBadge,
-  LifecycleBadge,
   SeverityBadge,
   SwarmConfirmationBadge,
   VerificationBadge,
@@ -81,17 +72,20 @@ export function LiveIntelligenceFeed({
   >('newest');
   const [page, setPage] = useState<number>(1);
   const [pageSize] = useState<number>(12);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(
+    Boolean(
+      initialCategory ||
+        initialSeverity ||
+        initialVerification ||
+        initialCountry
+    )
+  );
 
   const [items, setItems] = useState<EnrichedIncident[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
-  const [livePaused, setLivePaused] = useState<boolean>(false);
-  const [lastPolledUtc, setLastPolledUtc] = useState<string>(
-    new Date().toISOString()
-  );
 
-  // Sync external drill-down props when clicked from Overview / Analytics / Map
   useEffect(() => {
     setCategory(initialCategory);
     setSeverity(initialSeverity);
@@ -100,6 +94,14 @@ export function LiveIntelligenceFeed({
     setQ(initialQuery);
     setConfirmedSwarmOnly(initialConfirmedSwarmOnly);
     setPage(1);
+    if (
+      initialCategory ||
+      initialSeverity ||
+      initialVerification ||
+      initialCountry
+    ) {
+      setShowAdvancedFilters(true);
+    }
   }, [
     initialCategory,
     initialSeverity,
@@ -137,7 +139,6 @@ export function LiveIntelligenceFeed({
           setItems(data.items || []);
           setTotal(data.total || 0);
           setTotalPages(data.totalPages || 1);
-          setLastPolledUtc(data.serverTimeUtc || new Date().toISOString());
         }
       } finally {
         if (!silent) setLoading(false);
@@ -164,14 +165,12 @@ export function LiveIntelligenceFeed({
     fetchFeed(false);
   }, [fetchFeed]);
 
-  // Live periodic polling when not paused
   useEffect(() => {
-    if (livePaused) return;
     const interval = setInterval(() => {
       fetchFeed(true);
     }, pollIntervalSec * 1000);
     return () => clearInterval(interval);
-  }, [livePaused, pollIntervalSec, fetchFeed]);
+  }, [pollIntervalSec, fetchFeed]);
 
   function handleResetFilters() {
     setQ('');
@@ -187,417 +186,384 @@ export function LiveIntelligenceFeed({
     setPage(1);
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Live Stream Status & Control Header */}
-      <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Radio
-                className={`w-4 h-4 ${
-                  livePaused
-                    ? 'text-amber-400'
-                    : 'text-emerald-400 animate-pulse'
-                }`}
-              />
-              <h2 className="text-base font-bold text-slate-100">
-                Live Threat Intelligence Feed & Incident Explorer
-              </h2>
-            </div>
+  const activeFilterCount = [
+    category,
+    severity,
+    verification,
+    country,
+    sourceId,
+    dateFrom,
+    dateTo,
+  ].filter(Boolean).length;
 
-            {livePaused ? (
-              <span className="px-2 py-0.5 text-[11px] font-mono uppercase rounded bg-amber-950/90 text-amber-300 border border-amber-600/70">
-                STREAM PAUSED (VIEW STATIC)
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 text-[11px] font-mono uppercase rounded bg-emerald-950/90 text-emerald-300 border border-emerald-600/70">
-                AUTO-POLLING ACTIVE ({pollIntervalSec}s)
-              </span>
-            )}
+  return (
+    <div className="max-w-6xl mx-auto space-y-6 pb-12">
+      {/* ================================================================== */}
+      {/* EDITORIAL HEADER & PRIMARY FILTER BAR                              */}
+      {/* ================================================================== */}
+      <div className="space-y-5 border-b border-white/10 pb-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5 text-xs font-mono tracking-[0.2em] text-[#8a94a6] uppercase mb-1">
+              <span className="w-2 h-2 rotate-45 bg-[#f5b82e]" />
+              <span>INTELLIGENCE STREAM</span>
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-[#f3f5f8]">
+              Incident Feed & Explorer
+            </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-            <span className="text-slate-400 text-[11px]">
-              Synced: {lastPolledUtc.replace('T', ' ').slice(11, 19)} UTC
+          <div className="flex items-center gap-3 text-xs">
+            <span className="font-mono text-[#8a94a6]">
+              {total} Correlated Incidents
             </span>
-
-            <button
-              type="button"
-              onClick={() => setLivePaused((p) => !p)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border transition ${
-                livePaused
-                  ? 'bg-emerald-950/80 text-emerald-200 border-emerald-700'
-                  : 'bg-amber-950/80 text-amber-200 border-amber-700'
-              }`}
-            >
-              {livePaused ? (
-                <>
-                  <Play className="w-3 h-3" />
-                  <span>Resume Live Feed</span>
-                </>
-              ) : (
-                <>
-                  <Pause className="w-3 h-3" />
-                  <span>Pause Feed</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => fetchFeed(false)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700"
-            >
-              <RefreshCw
-                className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`}
-              />
-              <span>Refresh Query</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Reset Filters</span>
-            </button>
           </div>
         </div>
 
-        {/* Multi-Dimensional Filter Controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+        {/* Clean Primary Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[260px] max-w-md">
+            <Search className="w-4 h-4 text-[#64748b] absolute left-3.5 top-2.5 pointer-events-none" />
             <input
               type="text"
               aria-label="Search incidents by keyword"
-              placeholder="Search title, summary, entity, actor..."
+              placeholder="Search incidents, actors, locations, or frameworks..."
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-slate-100 placeholder:text-slate-500"
+              className="w-full pl-10 pr-4 py-2 bg-[#0c1018] border border-white/10 focus:border-[#f5b82e] text-xs text-[#f3f5f8] placeholder:text-[#64748b] focus:outline-none transition"
             />
           </div>
 
-          <select
-            aria-label="Filter by category"
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setPage(1);
-            }}
-            className="bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-          >
-            <option value="">All Swarm Taxonomy Categories</option>
-            {Object.entries(SWARM_CATEGORY_META).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            aria-label="Filter by severity"
-            value={severity}
-            onChange={(e) => {
-              setSeverity(e.target.value);
-              setPage(1);
-            }}
-            className="bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-          >
-            <option value="">All Severity Levels</option>
-            {Object.entries(SEVERITY_META).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.code} — {v.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            aria-label="Filter by verification status"
-            value={verification}
-            onChange={(e) => {
-              setVerification(e.target.value);
-              setPage(1);
-            }}
-            className="bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-          >
-            <option value="">All Verification Statuses</option>
-            {Object.entries(VERIFICATION_META).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.code}: {v.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 text-xs">
-          <select
-            aria-label="Filter by intelligence source"
-            value={sourceId}
-            onChange={(e) => {
-              setSourceId(e.target.value);
-              setPage(1);
-            }}
-            className="bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-          >
-            <option value="">All Monitored Sources</option>
-            {sources.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.reliability_score}/100)
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="text"
-            aria-label="Filter by country code or name"
-            placeholder="Country filter (e.g. US, CN, GB)..."
-            value={country}
-            onChange={(e) => {
-              setCountry(e.target.value);
-              setPage(1);
-            }}
-            className="bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-          />
-
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded px-2.5 py-1">
-            <span className="text-slate-400 font-mono text-[10px]">FROM:</span>
-            <input
-              type="date"
-              aria-label="Filter start date"
-              value={dateFrom}
-              onChange={(e) => {
-                setDateFrom(e.target.value);
+          {/* Quick Filter Pills & Advanced Toggle */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmedSwarmOnly(false);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-200 text-xs w-full focus:outline-none"
-            />
-          </div>
+              className={`px-3.5 py-2 border transition cursor-pointer ${
+                !confirmedSwarmOnly
+                  ? 'bg-[#f5b82e] text-[#080a0f] font-medium border-[#f5b82e]'
+                  : 'bg-[#0c1018] text-[#cbd2dc] border-white/10 hover:border-white/25'
+              }`}
+            >
+              All Incidents
+            </button>
 
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded px-2.5 py-1">
-            <span className="text-slate-400 font-mono text-[10px]">TO:</span>
-            <input
-              type="date"
-              aria-label="Filter end date"
-              value={dateTo}
-              onChange={(e) => {
-                setDateTo(e.target.value);
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmedSwarmOnly(true);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-200 text-xs w-full focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-2">
-            <label className="inline-flex items-center gap-1.5 text-slate-300 font-mono text-[11px] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={confirmedSwarmOnly}
-                onChange={(e) => {
-                  setConfirmedSwarmOnly(e.target.checked);
-                  setPage(1);
-                }}
-                className="rounded border-slate-700 bg-slate-950"
-              />
-              <span>Confirmed Swarms Only</span>
-            </label>
+              className={`px-3.5 py-2 border transition flex items-center gap-2 cursor-pointer ${
+                confirmedSwarmOnly
+                  ? 'bg-[#ef4444]/20 text-[#fca5a5] font-medium border-[#ef4444]/50'
+                  : 'bg-[#0c1018] text-[#cbd2dc] border-white/10 hover:border-white/25'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rotate-45 bg-[#ef4444]" />
+              <span>Confirmed Swarms</span>
+            </button>
 
             <select
               aria-label="Sort incidents"
               value={sortBy}
-              onChange={(e) =>
-                setSortBy(e.target.value as typeof sortBy)
-              }
-              className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200 font-mono text-[11px]"
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="bg-[#0c1018] border border-white/10 px-3 py-2 text-xs text-[#cbd2dc] focus:outline-none focus:border-[#f5b82e]"
             >
-              <option value="newest">Sort: Newest Published</option>
-              <option value="updated">Sort: Recently Updated</option>
-              <option value="severity">Sort: Highest Severity</option>
-              <option value="confidence">Sort: Highest Alignment</option>
+              <option value="newest">Newest Published</option>
+              <option value="updated">Recently Updated</option>
+              <option value="severity">Highest Severity</option>
+              <option value="confidence">Highest Alignment</option>
             </select>
+
+            <button
+              type="button"
+              onClick={() => setShowAdvancedFilters((v) => !v)}
+              className={`px-3 py-2 border inline-flex items-center gap-1.5 transition cursor-pointer ${
+                showAdvancedFilters || activeFilterCount > 0
+                  ? 'bg-white/[0.08] text-[#f5b82e] border-[#f5b82e]/40'
+                  : 'bg-[#0c1018] text-[#8a94a6] hover:text-[#f3f5f8] border-white/10'
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>
+                Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </span>
+            </button>
+
+            {(activeFilterCount > 0 || q || confirmedSwarmOnly) && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="px-2.5 py-2 text-[#8a94a6] hover:text-[#f3f5f8] inline-flex items-center gap-1 transition cursor-pointer"
+                title="Reset all filters"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Collapsible Advanced Filter Drawer */}
+        {showAdvancedFilters && (
+          <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <select
+              aria-label="Filter by category"
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1);
+              }}
+              className="bg-[#0c1018] border border-white/10 px-3 py-2 text-[#cbd2dc] focus:outline-none focus:border-[#f5b82e]"
+            >
+              <option value="">All Taxonomy Categories</option>
+              {Object.entries(SWARM_CATEGORY_META).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              aria-label="Filter by severity"
+              value={severity}
+              onChange={(e) => {
+                setSeverity(e.target.value);
+                setPage(1);
+              }}
+              className="bg-[#0c1018] border border-white/10 px-3 py-2 text-[#cbd2dc] focus:outline-none focus:border-[#f5b82e]"
+            >
+              <option value="">All Severity Levels</option>
+              {Object.entries(SEVERITY_META).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v.code} — {v.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              aria-label="Filter by verification status"
+              value={verification}
+              onChange={(e) => {
+                setVerification(e.target.value);
+                setPage(1);
+              }}
+              className="bg-[#0c1018] border border-white/10 px-3 py-2 text-[#cbd2dc] focus:outline-none focus:border-[#f5b82e]"
+            >
+              <option value="">All Verification Statuses</option>
+              {Object.entries(VERIFICATION_META).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              aria-label="Filter by intelligence source"
+              value={sourceId}
+              onChange={(e) => {
+                setSourceId(e.target.value);
+                setPage(1);
+              }}
+              className="bg-[#0c1018] border border-white/10 px-3 py-2 text-[#cbd2dc] focus:outline-none focus:border-[#f5b82e]"
+            >
+              <option value="">All Monitored Sources</option>
+              {sources.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.reliability_score}/100)
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="text"
+              aria-label="Filter by country code or name"
+              placeholder="Country code or name (e.g. US, CN)..."
+              value={country}
+              onChange={(e) => {
+                setCountry(e.target.value);
+                setPage(1);
+              }}
+              className="bg-[#0c1018] border border-white/10 px-3 py-2 text-[#cbd2dc] placeholder:text-[#64748b] focus:outline-none focus:border-[#f5b82e]"
+            />
+
+            <div className="flex items-center gap-2 bg-[#0c1018] border border-white/10 px-3 py-1.5">
+              <span className="text-[#64748b] font-mono text-[10px]">FROM</span>
+              <input
+                type="date"
+                aria-label="Filter start date"
+                value={dateFrom}
+                onChange={(e) => {
+                  setDateFrom(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-transparent text-[#cbd2dc] text-xs w-full focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 bg-[#0c1018] border border-white/10 px-3 py-1.5">
+              <span className="text-[#64748b] font-mono text-[10px]">TO</span>
+              <input
+                type="date"
+                aria-label="Filter end date"
+                value={dateTo}
+                onChange={(e) => {
+                  setDateTo(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-transparent text-[#cbd2dc] text-xs w-full focus:outline-none"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Results Count & Pagination Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs font-mono text-slate-400">
-        <div>
-          Showing{' '}
-          <span className="text-slate-100 font-semibold">{items.length}</span> of{' '}
-          <span className="text-cyan-300 font-semibold">{total}</span> matching
-          incidents (Page {page} of {totalPages})
+      {/* ================================================================== */}
+      {/* INCIDENT LIST                                                      */}
+      {/* ================================================================== */}
+      {loading ? (
+        <div className="py-16 text-center text-xs font-mono text-[#8a94a6]">
+          Loading intelligence records...
         </div>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 disabled:opacity-40 inline-flex items-center gap-1"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            <span>Prev</span>
-          </button>
-          <span className="px-2 text-slate-300">
-            {page} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 disabled:opacity-40 inline-flex items-center gap-1"
-          >
-            <span>Next</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Feed Entries or Informative Empty State */}
-      {items.length === 0 ? (
-        <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-8 text-center space-y-3">
-          <ShieldAlert className="w-8 h-8 text-amber-400 mx-auto" />
-          <h3 className="text-sm font-bold text-slate-100">
-            No Matching Intelligence Records Found
+      ) : items.length === 0 ? (
+        <div className="bg-[#0c1018] border border-white/10 p-12 text-center space-y-4">
+          <h3 className="font-display text-base font-medium text-[#f3f5f8]">
+            No Matching Intelligence Records
           </h3>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Either your current filter combination returned zero records, or no reports have been ingested into this store yet.
+          <p className="text-xs text-[#8a94a6] max-w-md mx-auto">
+            Adjust or reset your active filters to view available incidents.
           </p>
           <div className="flex justify-center gap-3 pt-2">
             <button
               type="button"
               onClick={handleResetFilters}
-              className="px-3 py-1.5 text-xs font-mono bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded"
+              className="px-4 py-2 text-xs bg-white/[0.06] hover:bg-white/10 text-[#f3f5f8] border border-white/10 cursor-pointer"
             >
-              Reset All Active Filters
+              Reset Filters
             </button>
             {mode === 'live' && (
               <button
                 type="button"
                 disabled={ingesting}
                 onClick={onTriggerLiveIngest}
-                className="px-3 py-1.5 text-xs font-mono bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold rounded"
+                className="px-4 py-2 text-xs bg-[#f5b82e] hover:bg-[#fbbf24] text-[#080a0f] font-medium cursor-pointer"
               >
-                {ingesting
-                  ? 'Polling Public Sources...'
-                  : 'Discover & Ingest Public Reports Now'}
+                {ingesting ? 'Syncing...' : 'Sync Public Sources'}
               </button>
             )}
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="divide-y divide-white/[0.07] border-t border-b border-white/[0.07]">
           {items.map((incident) => {
             const primarySource = incident.sources[0];
             return (
               <article
                 key={incident.id}
                 onClick={() => onSelectIncident(incident)}
-                className="bg-[#0b0f17] hover:bg-[#0f1521] border border-slate-800/90 hover:border-cyan-700/60 rounded-lg p-4 transition cursor-pointer space-y-2.5"
+                className="group py-5 px-4 hover:bg-[#0c1018] transition cursor-pointer flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-l-2 border-transparent hover:border-[#f5b82e]"
               >
-                {/* Top Metadata Row */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
+                <div className="space-y-2 flex-1 min-w-0">
+                  {/* Top Metadata Strip */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
                     <SeverityBadge severity={incident.severity} />
                     <VerificationBadge
                       status={incident.verification_status}
                       independentSources={incident.independent_source_count}
                     />
-                    <CategoryBadge category={incident.primary_category} />
-                    <SwarmConfirmationBadge
-                      isConfirmedSwarm={incident.is_confirmed_swarm}
-                      evidenceStrength={incident.evidence_strength}
-                      confidence={incident.classification_confidence}
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <LifecycleBadge lifecycle={incident.record_lifecycle} />
-                    {incident.reported_agent_count !== null && (
-                      <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-cyan-950/90 text-cyan-300 border border-cyan-700/60">
-                        {incident.reported_agent_count} AGENTS DOCUMENTED
-                      </span>
+                    <CategoryBadge category={incident.primary_category} short />
+                    {incident.is_confirmed_swarm && (
+                      <SwarmConfirmationBadge
+                        isConfirmedSwarm={incident.is_confirmed_swarm}
+                        evidenceStrength={incident.evidence_strength}
+                        confidence={incident.classification_confidence}
+                      />
                     )}
+                    <span className="text-[#8a94a6]">•</span>
+                    <span className="text-[#cbd2dc] font-medium">
+                      {incident.country_name ||
+                        incident.region_name ||
+                        'Global'}
+                    </span>
                   </div>
-                </div>
 
-                {/* Title & Factual Summary */}
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-100 group-hover:text-cyan-300">
+                  {/* Title & Summary */}
+                  <h3 className="font-display text-base font-medium text-[#f3f5f8] group-hover:text-[#f5b82e] transition leading-snug">
                     {incident.title}
                   </h3>
-                  <p className="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[#8a94a6] line-clamp-2 leading-relaxed max-w-4xl">
                     {incident.summary}
                   </p>
                 </div>
 
-                {/* Bottom Provenance & Timestamps Bar */}
-                <div className="pt-2 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono text-slate-400">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="inline-flex items-center gap-1 text-slate-300">
-                      <Clock className="w-3 h-3 text-cyan-400" />
-                      <span>
-                        Published:{' '}
-                        {new Date(incident.first_published_at)
-                          .toISOString()
-                          .replace('T', ' ')
-                          .slice(0, 16)}{' '}
-                        UTC
-                      </span>
-                    </span>
-
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-amber-400" />
-                      <span>
-                        Occurred:{' '}
-                        {incident.occurred_at
-                          ? new Date(incident.occurred_at)
-                              .toISOString()
-                              .slice(0, 10)
-                          : 'Unstated'}
-                      </span>
-                    </span>
-
-                    <span className="inline-flex items-center gap-1">
-                      <Globe className="w-3 h-3 text-emerald-400" />
-                      <span>
-                        {incident.country_name
-                          ? `${incident.country_name} (${incident.country_code})`
-                          : incident.region_name || 'Global / Unspecified'}
-                      </span>
-                    </span>
+                {/* Right Attribution & Date Column */}
+                <div className="lg:text-right shrink-0 flex lg:flex-col items-center lg:items-end justify-between gap-2 text-xs text-[#8a94a6]">
+                  <div className="font-mono text-[11px] text-[#cbd2dc]">
+                    {new Date(incident.first_published_at)
+                      .toISOString()
+                      .slice(0, 10)}
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    {primarySource && (
-                      <span className="text-slate-300">
-                        Source: <strong>{primarySource.source.name}</strong> (
-                        {primarySource.source.reliability_score}/100)
-                      </span>
-                    )}
-
-                    {primarySource && (
-                      <a
-                        href={primarySource.record.original_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 underline"
-                      >
-                        <span>Original Report</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
+                  {primarySource && (
+                    <div className="text-[11px] text-[#8a94a6]">
+                      {primarySource.source.name}
+                    </div>
+                  )}
+                  {primarySource && (
+                    <a
+                      href={primarySource.record.original_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 text-[11px] text-[#f5b82e] hover:underline"
+                    >
+                      <span>Source</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
               </article>
             );
           })}
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* PAGINATION BAR                                                     */}
+      {/* ================================================================== */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2 text-xs text-[#8a94a6]">
+          <span>
+            Page <strong className="text-[#f3f5f8]">{page}</strong> of{' '}
+            {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="px-3 py-1.5 bg-[#0c1018] hover:bg-white/[0.06] text-[#f3f5f8] border border-white/10 disabled:opacity-40 inline-flex items-center gap-1 cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Previous</span>
+            </button>
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="px-3 py-1.5 bg-[#0c1018] hover:bg-white/[0.06] text-[#f3f5f8] border border-white/10 disabled:opacity-40 inline-flex items-center gap-1 cursor-pointer"
+            >
+              <span>Next</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
     </div>

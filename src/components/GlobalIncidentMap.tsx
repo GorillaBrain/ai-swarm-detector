@@ -4,13 +4,10 @@ import React, { useMemo, useState } from 'react';
 import {
   Compass,
   ExternalLink,
-  Filter,
-  Globe,
   List,
   MapPin,
   Maximize2,
   Minimize2,
-  ShieldAlert,
 } from 'lucide-react';
 import {
   EnrichedIncident,
@@ -19,7 +16,6 @@ import {
   SWARM_CATEGORY_META,
   SwarmCategory,
   VERIFICATION_META,
-  VerificationStatus,
 } from '@/lib/types';
 import {
   CategoryBadge,
@@ -46,9 +42,6 @@ interface GeoCluster {
   confirmedSwarmsCount: number;
 }
 
-/**
- * Converts latitude (-60..75) and longitude (-180..180) to SVG viewport coordinates (960 x 440)
- */
 function projectToSvg(lat: number, lon: number): { x: number; y: number } {
   const x = ((lon + 180) / 360) * 960;
   const clampedLat = Math.max(-60, Math.min(75, lat));
@@ -66,14 +59,12 @@ export function GlobalIncidentMap({
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [verificationFilter, setVerificationFilter] = useState<string>('all');
-  const [daysFilter, setDaysFilter] = useState<number>(0);
   const [zoom, setZoom] = useState<number>(1);
   const [selectedClusterKey, setSelectedClusterKey] = useState<string | null>(
     null
   );
 
   const filteredIncidents = useMemo(() => {
-    const nowMs = Date.now();
     return incidents.filter((inc) => {
       if (
         categoryFilter !== 'all' &&
@@ -91,19 +82,9 @@ export function GlobalIncidentMap({
       ) {
         return false;
       }
-      if (daysFilter > 0) {
-        const cutoff = nowMs - daysFilter * 24 * 60 * 60 * 1000;
-        if (Date.parse(inc.first_published_at) < cutoff) return false;
-      }
       return true;
     });
-  }, [
-    incidents,
-    categoryFilter,
-    severityFilter,
-    verificationFilter,
-    daysFilter,
-  ]);
+  }, [incidents, categoryFilter, severityFilter, verificationFilter]);
 
   const { clusters, unmappedIncidents } = useMemo(() => {
     const clusterMap = new Map<string, GeoCluster>();
@@ -157,56 +138,56 @@ export function GlobalIncidentMap({
 
   const activeCluster = useMemo(() => {
     if (!selectedClusterKey) return clusters[0] || null;
-    return clusters.find((c) => c.key === selectedClusterKey) || clusters[0] || null;
+    return (
+      clusters.find((c) => c.key === selectedClusterKey) || clusters[0] || null
+    );
   }, [clusters, selectedClusterKey]);
 
   return (
-    <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg overflow-hidden">
+    <div className="bg-[#0c1018] border border-white/10">
       {/* Header & Controls */}
-      <div className="px-4 py-3 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 bg-[#090d14]">
-        <div className="flex items-center gap-2.5">
-          <Globe className="w-4 h-4 text-cyan-400" />
+      <div className="px-5 py-3.5 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="w-2 h-2 rotate-45 bg-[#f5b82e]" />
           <div>
-            <h3 className="text-sm font-semibold text-slate-100 tracking-tight">
-              Global Geolocation & Attribution Map
+            <h3 className="font-display text-xs font-semibold tracking-[0.16em] uppercase text-[#f3f5f8]">
+              2D CARTOGRAPHIC PROJECTION
             </h3>
-            <p className="text-[11px] text-slate-400 font-mono">
-              {clusters.reduce((acc, c) => acc + c.incidents.length, 0)} mapped across{' '}
-              {clusters.length} countries • {unmappedIncidents.length} global/unmapped (no coordinates invented)
+            <p className="text-xs text-[#8a94a6]">
+              {clusters.reduce((acc, c) => acc + c.incidents.length, 0)}{' '}
+              attributed incidents across {clusters.length} jurisdictions •{' '}
+              {unmappedIncidents.length} unmapped/global
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           {!compact && (
             <>
-              <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-800 rounded px-2 py-1 text-xs">
-                <Filter className="w-3 h-3 text-slate-400" />
-                <select
-                  aria-label="Filter map by category"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="bg-transparent text-slate-200 focus:outline-none text-xs"
-                >
-                  <option value="all" className="bg-slate-950">All Categories</option>
-                  {Object.entries(SWARM_CATEGORY_META).map(([k, v]) => (
-                    <option key={k} value={k} className="bg-slate-950">
-                      {v.shortLabel}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                aria-label="Filter map by category"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="bg-[#080a0f] border border-white/10 px-2.5 py-1.5 text-[#cbd2dc] focus:outline-none focus:border-[#f5b82e]"
+              >
+                <option value="all">All Categories</option>
+                {Object.entries(SWARM_CATEGORY_META).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v.shortLabel}
+                  </option>
+                ))}
+              </select>
 
               <select
                 aria-label="Filter map by severity"
                 value={severityFilter}
                 onChange={(e) => setSeverityFilter(e.target.value)}
-                className="bg-slate-900/90 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none"
+                className="bg-[#080a0f] border border-white/10 px-2.5 py-1.5 text-[#cbd2dc] focus:outline-none focus:border-[#f5b82e]"
               >
-                <option value="all" className="bg-slate-950">All Severities</option>
+                <option value="all">All Severities</option>
                 {Object.entries(SEVERITY_META).map(([k, v]) => (
-                  <option key={k} value={k} className="bg-slate-950">
-                    {v.code} {v.label}
+                  <option key={k} value={k}>
+                    {v.code} — {v.label}
                   </option>
                 ))}
               </select>
@@ -215,38 +196,26 @@ export function GlobalIncidentMap({
                 aria-label="Filter map by verification"
                 value={verificationFilter}
                 onChange={(e) => setVerificationFilter(e.target.value)}
-                className="bg-slate-900/90 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none"
+                className="bg-[#080a0f] border border-white/10 px-2.5 py-1.5 text-[#cbd2dc] focus:outline-none focus:border-[#f5b82e]"
               >
-                <option value="all" className="bg-slate-950">All Verification</option>
+                <option value="all">All Verification</option>
                 {Object.entries(VERIFICATION_META).map(([k, v]) => (
-                  <option key={k} value={k} className="bg-slate-950">
+                  <option key={k} value={k}>
                     {v.label}
                   </option>
                 ))}
               </select>
-
-              <select
-                aria-label="Filter map by time window"
-                value={daysFilter}
-                onChange={(e) => setDaysFilter(Number(e.target.value))}
-                className="bg-slate-900/90 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none"
-              >
-                <option value={0} className="bg-slate-950">All Time</option>
-                <option value={7} className="bg-slate-950">Last 7 Days</option>
-                <option value={30} className="bg-slate-950">Last 30 Days</option>
-                <option value={90} className="bg-slate-950">Last 90 Days</option>
-              </select>
             </>
           )}
 
-          <div className="inline-flex rounded border border-slate-800 bg-slate-950 p-0.5 text-xs">
+          <div className="inline-flex border border-white/10 bg-[#080a0f]">
             <button
               type="button"
               onClick={() => setViewMode('map')}
-              className={`px-2.5 py-1 rounded flex items-center gap-1 transition ${
+              className={`px-3 py-1.5 flex items-center gap-1.5 transition cursor-pointer ${
                 viewMode === 'map'
-                  ? 'bg-cyan-950/90 text-cyan-300 border border-cyan-700/60'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#f5b82e] text-[#080a0f] font-medium'
+                  : 'text-[#8a94a6] hover:text-[#f3f5f8]'
               }`}
             >
               <Compass className="w-3.5 h-3.5" />
@@ -255,52 +224,53 @@ export function GlobalIncidentMap({
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`px-2.5 py-1 rounded flex items-center gap-1 transition ${
+              className={`px-3 py-1.5 flex items-center gap-1.5 transition cursor-pointer ${
                 viewMode === 'list'
-                  ? 'bg-cyan-950/90 text-cyan-300 border border-cyan-700/60'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#f5b82e] text-[#080a0f] font-medium'
+                  : 'text-[#8a94a6] hover:text-[#f3f5f8]'
               }`}
             >
               <List className="w-3.5 h-3.5" />
-              <span>Accessible List ({clusters.length})</span>
+              <span>Jurisdictions ({clusters.length})</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode('unmapped')}
-              className={`px-2.5 py-1 rounded flex items-center gap-1 transition ${
+              className={`px-3 py-1.5 flex items-center gap-1.5 transition cursor-pointer ${
                 viewMode === 'unmapped'
-                  ? 'bg-cyan-950/90 text-cyan-300 border border-cyan-700/60'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#f5b82e] text-[#080a0f] font-medium'
+                  : 'text-[#8a94a6] hover:text-[#f3f5f8]'
               }`}
             >
-              <span>Unmapped / Global ({unmappedIncidents.length})</span>
+              <span>Unmapped ({unmappedIncidents.length})</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Body */}
+      {/* Map Body */}
       {viewMode === 'map' && (
         <div className="grid grid-cols-1 lg:grid-cols-12">
-          {/* Interactive Tactical Vector Map */}
-          <div className="lg:col-span-8 relative bg-[#06090f] border-b lg:border-b-0 lg:border-r border-slate-800/80 overflow-hidden">
-            <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-slate-950/90 border border-slate-800 rounded p-1">
+          <div className="lg:col-span-8 relative bg-[#080a0f] border-b lg:border-b-0 lg:border-r border-white/[0.08] overflow-hidden">
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-[#0c1018]/90 border border-white/10 p-1">
               <button
                 type="button"
                 title="Zoom In"
-                onClick={() => setZoom((z) => Math.min(1.8, Number((z + 0.2).toFixed(1))))}
-                className="p-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded"
+                onClick={() =>
+                  setZoom((z) => Math.min(1.8, Number((z + 0.2).toFixed(1))))
+                }
+                className="p-1 text-[#cbd2dc] hover:text-white cursor-pointer"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] font-mono px-1.5 text-slate-400">
+              <span className="text-[10px] font-mono px-1.5 text-[#8a94a6]">
                 {Math.round(zoom * 100)}%
               </span>
               <button
                 type="button"
                 title="Reset Zoom"
                 onClick={() => setZoom(1)}
-                className="p-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded"
+                className="p-1 text-[#cbd2dc] hover:text-white cursor-pointer"
               >
                 <Minimize2 className="w-3.5 h-3.5" />
               </button>
@@ -308,39 +278,39 @@ export function GlobalIncidentMap({
 
             <svg
               viewBox="0 0 960 440"
-              className="w-full h-[300px] sm:h-[360px] select-none"
+              className="w-full h-[320px] sm:h-[380px] select-none"
               role="img"
               aria-label="Global AI Swarm Incident Map"
             >
               <defs>
                 <pattern
-                  id="soc-grid"
-                  width="40"
-                  height="40"
+                  id="map-grid"
+                  width="48"
+                  height="48"
                   patternUnits="userSpaceOnUse"
                 >
                   <path
-                    d="M 40 0 L 0 0 0 40"
+                    d="M 48 0 L 0 0 0 48"
                     fill="none"
-                    stroke="#0f172a"
+                    stroke="rgba(255,255,255,0.03)"
                     strokeWidth="1"
                   />
                 </pattern>
               </defs>
 
-              <rect width="960" height="440" fill="#06090f" />
-              <rect width="960" height="440" fill="url(#soc-grid)" />
+              <rect width="960" height="440" fill="#080a0f" />
+              <rect width="960" height="440" fill="url(#map-grid)" />
 
               <g
                 transform={`translate(${480 * (1 - zoom)}, ${220 * (1 - zoom)}) scale(${zoom})`}
               >
-                {/* Equator & Tropics & Prime Meridian reference lines */}
+                {/* Reference equator & meridian */}
                 <line
                   x1="0"
                   y1="244"
                   x2="960"
                   y2="244"
-                  stroke="#1e293b"
+                  stroke="rgba(255,255,255,0.06)"
                   strokeDasharray="4 4"
                   strokeWidth="1"
                 />
@@ -349,89 +319,68 @@ export function GlobalIncidentMap({
                   y1="0"
                   x2="480"
                   y2="440"
-                  stroke="#1e293b"
+                  stroke="rgba(255,255,255,0.06)"
                   strokeDasharray="4 4"
                   strokeWidth="1"
                 />
 
-                {/* Stylized Continental Landmasses (Tactical SOC Wireframe) */}
+                {/* Stylized Continental Landmasses */}
                 <g
-                  fill="#0f172a"
-                  stroke="#1e293b"
-                  strokeWidth="1.2"
-                  opacity="0.95"
+                  fill="#121722"
+                  stroke="rgba(148, 163, 184, 0.18)"
+                  strokeWidth="1"
                 >
-                  {/* North America */}
                   <path d="M 75,55 L 235,50 L 295,115 L 255,195 L 210,225 L 155,195 L 115,135 Z" />
-                  {/* South America */}
                   <path d="M 235,235 L 325,255 L 345,335 L 295,415 L 255,390 L 230,295 Z" />
-                  {/* Europe */}
                   <path d="M 435,65 L 555,55 L 575,135 L 515,155 L 445,145 L 430,105 Z" />
-                  {/* Africa */}
                   <path d="M 440,165 L 555,165 L 595,245 L 560,365 L 495,375 L 455,275 L 425,215 Z" />
-                  {/* Asia */}
                   <path d="M 565,55 L 845,65 L 875,175 L 795,245 L 685,235 L 585,185 Z" />
-                  {/* Oceania / Australia */}
                   <path d="M 745,295 L 865,295 L 880,375 L 775,385 L 735,345 Z" />
                 </g>
 
-                {/* Country Cluster Markers */}
+                {/* Country Cluster Diamond Markers */}
                 {clusters.map((cluster) => {
                   const { x, y } = projectToSvg(
                     cluster.latitude,
                     cluster.longitude
                   );
                   const isSelected = activeCluster?.key === cluster.key;
-                  const radius = Math.min(
-                    22,
-                    9 + Math.sqrt(cluster.incidents.length) * 3.5
+                  const size = Math.min(
+                    16,
+                    8 + Math.sqrt(cluster.incidents.length) * 2.5
                   );
 
-                  const strokeColor =
-                    cluster.highestSeverity === 'critical'
+                  const hasConfirmedSwarm = cluster.confirmedSwarmsCount > 0;
+                  const strokeColor = isSelected
+                    ? '#f5b82e'
+                    : hasConfirmedSwarm
                       ? '#ef4444'
-                      : cluster.highestSeverity === 'high'
-                        ? '#f97316'
-                        : cluster.highestSeverity === 'medium'
-                          ? '#f59e0b'
-                          : '#22d3ee';
+                      : '#cbd2dc';
 
-                  const fillColor =
-                    cluster.highestSeverity === 'critical'
-                      ? 'rgba(239, 68, 68, 0.28)'
-                      : cluster.highestSeverity === 'high'
-                        ? 'rgba(249, 115, 22, 0.28)'
-                        : cluster.highestSeverity === 'medium'
-                          ? 'rgba(245, 158, 11, 0.26)'
-                          : 'rgba(34, 211, 238, 0.24)';
+                  const fillColor = isSelected
+                    ? 'rgba(245, 184, 46, 0.25)'
+                    : hasConfirmedSwarm
+                      ? 'rgba(239, 68, 68, 0.22)'
+                      : 'rgba(203, 210, 220, 0.12)';
 
                   return (
                     <g
                       key={cluster.key}
                       transform={`translate(${x}, ${y})`}
                       onClick={() => setSelectedClusterKey(cluster.key)}
-                      className="cursor-pointer group"
+                      className="cursor-pointer"
                     >
-                      {isSelected && (
-                        <circle
-                          r={radius + 7}
-                          fill="none"
-                          stroke={strokeColor}
-                          strokeWidth="1.5"
-                          strokeDasharray="3 2"
-                        />
-                      )}
-                      <circle
-                        r={radius}
+                      <polygon
+                        points={`0,${-size} ${size},0 0,${size} ${-size},0`}
                         fill={fillColor}
                         stroke={strokeColor}
-                        strokeWidth={isSelected ? 2.4 : 1.5}
+                        strokeWidth={isSelected ? 2 : 1.2}
                       />
                       <text
                         textAnchor="middle"
                         dy="3.5"
-                        fill="#f8fafc"
-                        fontSize="10"
+                        fill="#f3f5f8"
+                        fontSize="9.5"
                         fontFamily="monospace"
                         fontWeight="bold"
                       >
@@ -439,8 +388,8 @@ export function GlobalIncidentMap({
                       </text>
                       <text
                         textAnchor="middle"
-                        dy={radius + 12}
-                        fill="#94a3b8"
+                        dy={size + 12}
+                        fill="#8a94a6"
                         fontSize="9"
                         fontFamily="monospace"
                       >
@@ -453,141 +402,126 @@ export function GlobalIncidentMap({
             </svg>
 
             {/* Legend Footer */}
-            <div className="px-4 py-2 bg-[#080c13] border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
-              <div className="flex items-center gap-4">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 border border-red-400" />
-                  SEV-1 Critical
+            <div className="px-4 py-2.5 bg-[#0c1018] border-t border-white/[0.08] flex flex-wrap items-center justify-between gap-2 text-xs text-[#8a94a6]">
+              <div className="flex items-center gap-5">
+                <span className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rotate-45 bg-[#f5b82e]" />
+                  <span>Selected Jurisdiction</span>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500/80 border border-orange-400" />
-                  SEV-2 High
+                <span className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rotate-45 bg-[#ef4444]" />
+                  <span>Confirmed Swarm Activity</span>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80 border border-amber-300" />
-                  SEV-3 Medium
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400/80 border border-cyan-300" />
-                  SEV-4/5 Low/Info
+                <span className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rotate-45 border border-[#cbd2dc]" />
+                  <span>Reported Incidents</span>
                 </span>
               </div>
-              <span>
-                Country-centroid placement only when supported by source evidence
+              <span className="text-[11px]">
+                Verified geographic attribution only
               </span>
             </div>
           </div>
 
           {/* Selected Cluster Inspector Panel */}
-          <div className="lg:col-span-4 p-4 flex flex-col justify-between bg-[#0b0f17] max-h-[410px] overflow-y-auto">
+          <div className="lg:col-span-4 p-5 flex flex-col justify-between bg-[#0c1018] max-h-[430px] overflow-y-auto">
             {activeCluster ? (
               <div>
-                <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-800">
+                <div className="flex items-start justify-between gap-2 pb-3.5 border-b border-white/10">
                   <div>
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-cyan-400">
-                      <MapPin className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-2 text-sm font-display font-semibold text-[#f3f5f8]">
+                      <MapPin className="w-4 h-4 text-[#f5b82e]" />
                       <span>
                         {activeCluster.countryName} ({activeCluster.countryCode})
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Region: {activeCluster.regionName} •{' '}
-                      {activeCluster.incidents.length} reported incident(s) •{' '}
+                    <p className="text-xs text-[#8a94a6] mt-1">
+                      {activeCluster.incidents.length} incident(s) •{' '}
                       {activeCluster.confirmedSwarmsCount} confirmed swarm(s)
                     </p>
                   </div>
                   {onFilterByCountry && (
                     <button
                       type="button"
-                      onClick={() => onFilterByCountry(activeCluster.countryCode)}
-                      className="px-2 py-1 text-[11px] font-mono bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 rounded"
+                      onClick={() =>
+                        onFilterByCountry(activeCluster.countryCode)
+                      }
+                      className="px-2.5 py-1 text-xs bg-white/[0.05] hover:bg-white/10 text-[#f5b82e] border border-white/10 cursor-pointer"
                     >
-                      Filter Feed
+                      Explore All
                     </button>
                   )}
                 </div>
 
-                <div className="mt-3 space-y-2.5">
+                <div className="mt-3 divide-y divide-white/[0.06]">
                   {activeCluster.incidents.slice(0, 6).map((inc) => (
                     <div
                       key={inc.id}
                       onClick={() => onSelectIncident(inc)}
-                      className="p-2.5 rounded border border-slate-800/90 bg-slate-900/50 hover:bg-slate-900 hover:border-cyan-700/50 cursor-pointer transition"
+                      className="py-3 hover:bg-white/[0.02] cursor-pointer transition space-y-1.5"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                      <div className="flex items-center justify-between gap-2">
                         <SeverityBadge severity={inc.severity} />
-                        <span className="text-[10px] font-mono text-slate-400">
-                          {inc.location_basis === 'occurrence_location'
-                            ? 'Occurrence / Origin'
-                            : inc.location_basis === 'targeted_location'
-                              ? 'Targeted Jurisdiction'
-                              : 'Reporting Jurisdiction'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-medium text-slate-100 line-clamp-2">
-                        {inc.title}
-                      </p>
-                      <div className="mt-1.5 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                        <span>
+                        <span className="font-mono text-[11px] text-[#8a94a6]">
                           {new Date(inc.first_published_at)
                             .toISOString()
                             .slice(0, 10)}
                         </span>
-                        <span className="text-cyan-400 flex items-center gap-1">
-                          Inspect <ExternalLink className="w-3 h-3" />
-                        </span>
                       </div>
+                      <p className="text-xs font-medium text-[#f3f5f8] line-clamp-2">
+                        {inc.title}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                No geographically attributed incidents match the current filter criteria.
+              <div className="text-center py-12 text-[#8a94a6] text-xs">
+                No geographically attributed incidents match the current filter.
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Accessible List View */}
+      {/* Accessible Jurisdiction Table */}
       {viewMode === 'list' && (
-        <div className="p-4 overflow-x-auto">
+        <div className="p-5 overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase">
-                <th className="py-2 px-3">Country / ISO</th>
-                <th className="py-2 px-3">Region</th>
-                <th className="py-2 px-3">Incidents</th>
-                <th className="py-2 px-3">Confirmed Swarms</th>
-                <th className="py-2 px-3">Highest Severity</th>
-                <th className="py-2 px-3">Latest Incident</th>
+              <tr className="border-b border-white/10 text-[#8a94a6] font-mono text-[11px] uppercase">
+                <th className="py-2.5 px-3">Jurisdiction</th>
+                <th className="py-2.5 px-3">Region</th>
+                <th className="py-2.5 px-3">Incidents</th>
+                <th className="py-2.5 px-3">Confirmed Swarms</th>
+                <th className="py-2.5 px-3">Highest Severity</th>
+                <th className="py-2.5 px-3">Latest Report</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-white/[0.06]">
               {clusters.map((c) => (
                 <tr
                   key={c.key}
-                  className="hover:bg-slate-900/60 cursor-pointer"
+                  className="hover:bg-white/[0.03] cursor-pointer"
                   onClick={() => {
                     setSelectedClusterKey(c.key);
                     setViewMode('map');
                   }}
                 >
-                  <td className="py-2.5 px-3 font-mono font-medium text-slate-200">
+                  <td className="py-3 px-3 font-medium text-[#f3f5f8]">
                     {c.countryName} ({c.countryCode})
                   </td>
-                  <td className="py-2.5 px-3 text-slate-400">{c.regionName}</td>
-                  <td className="py-2.5 px-3 font-mono text-cyan-300">
+                  <td className="py-3 px-3 text-[#8a94a6]">{c.regionName}</td>
+                  <td className="py-3 px-3 font-mono text-[#f3f5f8]">
                     {c.incidents.length}
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-emerald-300">
+                  <td className="py-3 px-3 font-mono text-[#ef4444]">
                     {c.confirmedSwarmsCount}
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-3 px-3">
                     <SeverityBadge severity={c.highestSeverity} />
                   </td>
-                  <td className="py-2.5 px-3 text-slate-300 max-w-md truncate">
+                  <td className="py-3 px-3 text-[#cbd2dc] max-w-md truncate">
                     {c.incidents[0]?.title}
                   </td>
                 </tr>
@@ -597,40 +531,40 @@ export function GlobalIncidentMap({
         </div>
       )}
 
-      {/* Unmapped / Global Scope View */}
+      {/* Unmapped / Global View */}
       {viewMode === 'unmapped' && (
-        <div className="p-4">
-          <div className="mb-3 p-3 rounded bg-slate-900/90 border border-slate-800 text-xs text-slate-300 flex items-center gap-2.5">
-            <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>
-              <strong>Geolocation Integrity Policy:</strong> AI Swarm Detector never invents latitude or longitude. The {unmappedIncidents.length} incident(s) below are global in scope, theoretical/benchmark studies, or lack verified geographic attribution in public reporting.
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-[340px] overflow-y-auto">
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-[#8a94a6]">
+            AI Swarm Detector never fabricates coordinates. The{' '}
+            {unmappedIncidents.length} incident(s) below are global in scope or
+            lack verified geographic attribution in public reporting.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto">
             {unmappedIncidents.map((inc) => (
               <div
                 key={inc.id}
                 onClick={() => onSelectIncident(inc)}
-                className="p-3 rounded border border-slate-800 bg-slate-900/40 hover:bg-slate-900 cursor-pointer flex flex-col justify-between gap-2"
+                className="p-4 border border-white/[0.07] bg-[#080a0f] hover:border-[#f5b82e]/40 cursor-pointer flex flex-col justify-between gap-2 transition"
               >
-                <div>
-                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <SeverityBadge severity={inc.severity} />
                     <VerificationBadge status={inc.verification_status} />
                     <CategoryBadge category={inc.primary_category} short />
                   </div>
-                  <p className="text-xs font-medium text-slate-100">
+                  <p className="text-xs font-medium text-[#f3f5f8]">
                     {inc.title}
                   </p>
                 </div>
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                <div className="flex items-center justify-between text-[11px] text-[#8a94a6]">
                   <span>
-                    Scope:{' '}
                     {inc.location_precision === 'global'
                       ? 'Global / Multi-Region'
-                      : 'Location Unspecified'}
+                      : 'Unspecified Location'}
                   </span>
-                  <span className="text-cyan-400">Open Dossier →</span>
+                  <span className="text-[#f5b82e] inline-flex items-center gap-1">
+                    Dossier <ExternalLink className="w-3 h-3" />
+                  </span>
                 </div>
               </div>
             ))}

@@ -355,7 +355,7 @@ export const SWARM_CATEGORY_META: Record<
       'Multiple AI agents coordinating tasks, handoffs, or sub-goals toward a shared objective.',
     inclusionCriteria:
       'Requires documented multi-agent orchestration, inter-agent task delegation, or swarm topology.',
-    badgeClass: 'bg-cyan-950/80 text-cyan-300 border-cyan-700/60',
+    badgeClass: 'bg-white/[0.04] text-[#f3f5f8] border-white/10',
   },
   ai_driven_cyber_operations: {
     label: 'AI-Driven Cyber Operations',
@@ -364,7 +364,7 @@ export const SWARM_CATEGORY_META: Record<
       'Reported use of coordinated or autonomous agents for intrusion, reconnaissance, vulnerability exploitation, or malware operations.',
     inclusionCriteria:
       'Requires threat intelligence or advisory reporting of AI agent frameworks used in offensive cyber operations.',
-    badgeClass: 'bg-red-950/80 text-red-300 border-red-700/60',
+    badgeClass: 'bg-[#ef4444]/10 text-[#fca5a5] border-[#ef4444]/30',
   },
   ai_social_manipulation: {
     label: 'AI Social Manipulation',
@@ -373,7 +373,7 @@ export const SWARM_CATEGORY_META: Record<
       'Coordinated AI-generated personas, automated influence campaigns, synthetic consensus, or disinformation networks.',
     inclusionCriteria:
       'Requires evidence of coordinated multi-persona or automated LLM agent networks operating across social platforms.',
-    badgeClass: 'bg-amber-950/80 text-amber-300 border-amber-700/60',
+    badgeClass: 'bg-[#f5b82e]/10 text-[#fde68a] border-[#f5b82e]/25',
   },
   autonomous_agent_incidents: {
     label: 'Autonomous Agent Incidents',
@@ -382,7 +382,7 @@ export const SWARM_CATEGORY_META: Record<
       'AI agents performing consequential real-world or system actions with limited human supervision, including unintended or runaway behavior.',
     inclusionCriteria:
       'Requires documented autonomous tool-calling, goal pursuit, or unsupervised execution leading to consequential outcomes.',
-    badgeClass: 'bg-orange-950/80 text-orange-300 border-orange-700/60',
+    badgeClass: 'bg-white/[0.04] text-[#cbd2dc] border-white/10',
   },
   agent_infrastructure_abuse: {
     label: 'Agent Infrastructure Abuse',
@@ -391,16 +391,16 @@ export const SWARM_CATEGORY_META: Record<
       'Misuse, compromise, or exposure of multi-agent frameworks, MCP servers, orchestration control planes, or agent toolchains.',
     inclusionCriteria:
       'Requires vulnerability disclosure, exploit report, or abuse analysis targeting agent orchestration frameworks or endpoints.',
-    badgeClass: 'bg-purple-950/80 text-purple-300 border-purple-700/60',
+    badgeClass: 'bg-[#f5b82e]/10 text-[#fde68a] border-[#f5b82e]/25',
   },
   benign_research_activity: {
     label: 'Benign or Research Activity',
-    shortLabel: 'Benign / Research',
+    shortLabel: 'Research Benchmark',
     description:
       'Legitimate multi-agent experiments, safety evaluations, red-team benchmarks, simulations, and authorized testing.',
     inclusionCriteria:
       'Controlled academic, lab, or CERT evaluation of multi-agent systems without unauthorized external harm.',
-    badgeClass: 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60',
+    badgeClass: 'bg-white/[0.03] text-[#8a94a6] border-white/[0.08]',
   },
   unverified_suspected_activity: {
     label: 'Unverified Suspected Activity',
@@ -409,7 +409,7 @@ export const SWARM_CATEGORY_META: Record<
       'Reports suggesting possible swarm behavior or ordinary automation conflated with AI agents without sufficient evidence to confirm swarm architecture.',
     inclusionCriteria:
       'Assigned when reports allege AI swarm behavior without technical telemetry or when ordinary scripts/botnets cannot be ruled out.',
-    badgeClass: 'bg-zinc-900 text-zinc-300 border-zinc-700',
+    badgeClass: 'bg-white/[0.02] text-[#64748b] border-white/[0.06]',
   },
 };
 
@@ -430,8 +430,8 @@ export const SEVERITY_META: Record<
     code: 'SEV-1',
     description:
       'Active widespread compromise, critical infrastructure impact, or verified multi-organization supply chain breach.',
-    badgeClass: 'bg-red-950/90 text-red-200 border-red-500/80',
-    dotClass: 'bg-red-500',
+    badgeClass: 'bg-[#ef4444]/15 text-[#fca5a5] border-[#ef4444]/40',
+    dotClass: 'bg-[#ef4444]',
   },
   high: {
     label: 'High',
@@ -439,8 +439,8 @@ export const SEVERITY_META: Record<
     code: 'SEV-2',
     description:
       'Confirmed unauthorized intrusion, active influence operation, or severe vulnerability in deployed agent infrastructure.',
-    badgeClass: 'bg-orange-950/90 text-orange-200 border-orange-500/80',
-    dotClass: 'bg-orange-500',
+    badgeClass: 'bg-[#ef4444]/10 text-[#fca5a5] border-[#ef4444]/25',
+    dotClass: 'bg-[#f87171]',
   },
   medium: {
     label: 'Medium',
@@ -448,8 +448,8 @@ export const SEVERITY_META: Record<
     code: 'SEV-3',
     description:
       'Localized operational disruption, contained agent misbehavior, or high-impact security research proof-of-concept.',
-    badgeClass: 'bg-amber-950/90 text-amber-200 border-amber-500/80',
-    dotClass: 'bg-amber-400',
+    badgeClass: 'bg-[#f5b82e]/12 text-[#fde68a] border-[#f5b82e]/30',
+    dotClass: 'bg-[#f5b82e]',
   },
   low: {
     label: 'Low',
@@ -457,8 +457,8 @@ export const SEVERITY_META: Record<
     code: 'SEV-4',
     description:
       'Minor scope, experimental anomaly, or early warning indicator with minimal documented real-world harm.',
-    badgeClass: 'bg-cyan-950/80 text-cyan-200 border-cyan-600/70',
-    dotClass: 'bg-cyan-400',
+    badgeClass: 'bg-white/[0.04] text-[#cbd2dc] border-white/10',
+    dotClass: 'bg-[#8a94a6]',
   },
   informational: {
     label: 'Informational',
@@ -466,8 +466,8 @@ export const SEVERITY_META: Record<
     code: 'SEV-5',
     description:
       'Controlled benchmark, academic multi-agent study, or taxonomy reference without active threat impact.',
-    badgeClass: 'bg-zinc-900 text-zinc-300 border-zinc-700',
-    dotClass: 'bg-zinc-400',
+    badgeClass: 'bg-white/[0.02] text-[#8a94a6] border-white/[0.07]',
+    dotClass: 'bg-[#545e70]',
   },
 };
 
@@ -484,30 +484,30 @@ export const VERIFICATION_META: Record<
     label: 'Confirmed',
     code: 'VRF-CONF',
     rule: 'Strong primary-source forensic evidence or official disclosure directly establishes the event and agent architecture.',
-    badgeClass: 'bg-emerald-950/90 text-emerald-300 border-emerald-600/70',
+    badgeClass: 'bg-[#f5b82e]/15 text-[#f5b82e] border-[#f5b82e]/35',
   },
   corroborated: {
     label: 'Corroborated',
     code: 'VRF-CORR',
     rule: 'Multiple sufficiently independent sources (distinct domains/investigations) support the core factual claims.',
-    badgeClass: 'bg-cyan-950/90 text-cyan-300 border-cyan-600/70',
+    badgeClass: 'bg-white/[0.06] text-[#f3f5f8] border-white/15',
   },
   reported: {
     label: 'Reported',
     code: 'VRF-REPT',
     rule: 'A single credible publication or vendor reports the event, but independent third-party verification is limited.',
-    badgeClass: 'bg-blue-950/90 text-blue-300 border-blue-600/70',
+    badgeClass: 'bg-white/[0.03] text-[#cbd2dc] border-white/[0.08]',
   },
   suspected: {
     label: 'Suspected',
     code: 'VRF-SUSP',
     rule: 'Available indicators suggest possible autonomous or coordinated agent involvement, but technical proof is incomplete.',
-    badgeClass: 'bg-amber-950/90 text-amber-300 border-amber-600/70',
+    badgeClass: 'bg-[#f5b82e]/10 text-[#fde68a] border-[#f5b82e]/20',
   },
   unverified: {
     label: 'Unverified',
     code: 'VRF-UNVR',
     rule: 'Insufficient reliable evidence, single uncorroborated claim, or likely ordinary automation misattributed as an AI swarm.',
-    badgeClass: 'bg-zinc-900 text-zinc-400 border-zinc-700',
+    badgeClass: 'bg-white/[0.02] text-[#8a94a6] border-white/[0.06]',
   },
 };

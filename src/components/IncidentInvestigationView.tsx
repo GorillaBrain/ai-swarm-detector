@@ -1,27 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  AlertTriangle,
   ArrowLeft,
-  Bot,
-  Building2,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Cpu,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
-  FileText,
   Flag,
-  GitMerge,
   Globe,
-  HelpCircle,
-  History,
   Quote,
-  Scale,
-  ShieldAlert,
-  Sparkles,
 } from 'lucide-react';
 import {
   EnrichedIncident,
@@ -57,7 +45,20 @@ export function IncidentInvestigationView({
   onIncidentUpdated,
 }: IncidentInvestigationViewProps) {
   const [incident, setIncident] = useState<EnrichedIncident>(initialIncident);
-  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+
+  // Sync when prop changes
+  useEffect(() => {
+    setIncident(initialIncident);
+  }, [initialIncident]);
+
+  // Progressive disclosure toggles
+  const [showTimeline, setShowTimeline] = useState<boolean>(true);
+  const [showAnalyticalDecomp, setShowAnalyticalDecomp] =
+    useState<boolean>(false);
+  const [showAuditHistory, setShowAuditHistory] = useState<boolean>(false);
+  const [showFeedbackForm, setShowFeedbackForm] = useState<boolean>(false);
+
+  // Analyst override state
   const [analystHandle, setAnalystHandle] = useState('SOC-Analyst-01');
   const [feedbackType, setFeedbackType] = useState<
     | 'reclassify_category'
@@ -82,7 +83,9 @@ export function IncidentInvestigationView({
   async function handleFeedbackSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (rationale.trim().length < 10) {
-      setFeedbackMsg('Please provide at least 10 characters of analytical rationale.');
+      setFeedbackMsg(
+        'Please provide at least 10 characters of analytical rationale.'
+      );
       return;
     }
     setSubmitting(true);
@@ -113,7 +116,7 @@ export function IncidentInvestigationView({
         setSupportingUrl('');
         setShowFeedbackForm(false);
         setFeedbackMsg(
-          'Analyst override recorded and logged in classification history.'
+          'Analyst classification override recorded in audit trail.'
         );
       }
     } catch {
@@ -124,121 +127,135 @@ export function IncidentInvestigationView({
   }
 
   return (
-    <div className="space-y-5">
-      {/* Top Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0b0f17] border border-slate-800/90 rounded-lg px-4 py-3">
-        <div className="flex items-center gap-3">
+    <div className="max-w-5xl mx-auto space-y-8 pb-12 text-[#f3f5f8]">
+      {/* ================================================================== */}
+      {/* TOP NAVIGATION & BRIEFING CONTROLS                                 */}
+      {/* ================================================================== */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-white/10">
+        <div className="flex items-center gap-4">
           {onBack ? (
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded transition"
+              className="group inline-flex items-center gap-2 text-xs font-display tracking-[0.14em] uppercase text-[#cbd2dc] hover:text-[#f3f5f8] transition cursor-pointer"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Workspace</span>
+              <span className="px-2 py-1 bg-[#f3f5f8] text-[#080a0f] font-mono font-bold text-[10px] tracking-wider">
+                ESC
+              </span>
+              <span className="group-hover:text-[#f5b82e] transition">
+                BACK TO OPERATIONS
+              </span>
             </button>
           ) : (
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded transition"
+              className="group inline-flex items-center gap-2 text-xs font-display tracking-[0.14em] uppercase text-[#cbd2dc] hover:text-[#f3f5f8] transition"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Command Center</span>
+              <ArrowLeft className="w-4 h-4 text-[#f5b82e]" />
+              <span>RETURN TO COMMAND CENTER</span>
             </Link>
           )}
-          <div className="text-xs font-mono text-slate-400">
-            DOSSIER ID: <span className="text-slate-200">{incident.id}</span>
-          </div>
+
+          <span className="text-white/15">|</span>
+          <span className="font-mono text-xs text-[#8a94a6]">
+            DOSSIER // {incident.id.slice(0, 8).toUpperCase()}
+          </span>
           <LifecycleBadge lifecycle={incident.record_lifecycle} />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Link
             href={`/incidents/${incident.slug}?mode=${incident.operating_mode}`}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-800 rounded"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#cbd2dc] hover:text-[#f3f5f8] bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 transition"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Standalone Permalink</span>
+            <span>Permalink</span>
+            <ExternalLink className="w-3.5 h-3.5 text-[#8a94a6]" />
           </Link>
+
           <button
             type="button"
             onClick={() => setShowFeedbackForm((s) => !s)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-amber-950/80 hover:bg-amber-900/80 text-amber-200 border border-amber-700/70 rounded transition"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border transition cursor-pointer ${
+              showFeedbackForm
+                ? 'bg-[#f5b82e] text-[#080a0f] border-[#f5b82e]'
+                : 'bg-white/[0.03] hover:bg-white/[0.06] text-[#f5b82e] border-[#f5b82e]/35'
+            }`}
           >
             <Flag className="w-3.5 h-3.5" />
-            <span>Report / Override Classification</span>
+            <span>Analyst Override</span>
           </button>
         </div>
       </div>
 
       {feedbackMsg && (
-        <div className="p-3 rounded bg-emerald-950/70 border border-emerald-700/70 text-emerald-200 text-xs font-mono flex items-center justify-between">
+        <div className="p-3.5 bg-[#f5b82e]/10 border-l-2 border-[#f5b82e] text-xs text-[#f3f5f8] flex items-center justify-between">
           <span>{feedbackMsg}</span>
           <button
             type="button"
             onClick={() => setFeedbackMsg(null)}
-            className="text-emerald-400 hover:text-white"
+            className="text-[#8a94a6] hover:text-white"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Analyst Feedback & Classification Override Drawer */}
+      {/* ================================================================== */}
+      {/* EXPANDABLE ANALYST CLASSIFICATION OVERRIDE DRAWER                  */}
+      {/* ================================================================== */}
       {showFeedbackForm && (
         <form
           onSubmit={handleFeedbackSubmit}
-          className="bg-[#0e1420] border border-amber-700/60 rounded-lg p-4 space-y-4"
+          className="bg-[#0c1018] border border-[#f5b82e]/35 p-6 space-y-5"
         >
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-            <div className="flex items-center gap-2">
-              <Flag className="w-4 h-4 text-amber-400" />
-              <h3 className="text-sm font-semibold text-slate-100">
-                Analyst Classification Correction & Evidence Review
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div>
+              <h3 className="font-display text-sm font-semibold tracking-wider uppercase text-[#f3f5f8]">
+                ANALYST CLASSIFICATION OVERRIDE
               </h3>
+              <p className="text-xs text-[#8a94a6] mt-0.5">
+                All classification adjustments are recorded in the permanent audit log.
+              </p>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">
-              All changes are preserved in Classification History & Audit Log
-            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 text-xs">
             <div>
-              <label className="block text-slate-400 font-mono mb-1">
+              <label className="block text-[#8a94a6] mb-1.5">
                 Analyst Handle
               </label>
               <input
                 type="text"
                 value={analystHandle}
                 onChange={(e) => setAnalystHandle(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-100"
+                className="w-full bg-[#080a0f] border border-white/12 px-3 py-2 text-[#f3f5f8] focus:outline-none focus:border-[#f5b82e]"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-slate-400 font-mono mb-1">
-                Correction Type
+              <label className="block text-[#8a94a6] mb-1.5">
+                Action Type
               </label>
               <select
                 value={feedbackType}
                 onChange={(e) =>
                   setFeedbackType(e.target.value as typeof feedbackType)
                 }
-                className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-100"
+                className="w-full bg-[#080a0f] border border-white/12 px-3 py-2 text-[#f3f5f8] focus:outline-none focus:border-[#f5b82e]"
               >
                 <option value="reclassify_category">Reclassify Category</option>
                 <option value="adjust_severity">Adjust Severity Level</option>
                 <option value="dispute_swarm_status">Dispute Swarm Status</option>
                 <option value="add_corroboration">Add Corroborating Note</option>
                 <option value="flag_false_positive">
-                  Flag as False Positive (Ordinary Automation)
+                  Flag as Ordinary Automation
                 </option>
               </select>
             </div>
 
             <div>
-              <label className="block text-slate-400 font-mono mb-1">
+              <label className="block text-[#8a94a6] mb-1.5">
                 Proposed Category
               </label>
               <select
@@ -246,7 +263,7 @@ export function IncidentInvestigationView({
                 onChange={(e) =>
                   setProposedCategory(e.target.value as SwarmCategory)
                 }
-                className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-100"
+                className="w-full bg-[#080a0f] border border-white/12 px-3 py-2 text-[#f3f5f8] focus:outline-none focus:border-[#f5b82e]"
               >
                 {Object.entries(SWARM_CATEGORY_META).map(([k, v]) => (
                   <option key={k} value={k}>
@@ -257,7 +274,7 @@ export function IncidentInvestigationView({
             </div>
 
             <div>
-              <label className="block text-slate-400 font-mono mb-1">
+              <label className="block text-[#8a94a6] mb-1.5">
                 Proposed Severity
               </label>
               <select
@@ -265,18 +282,18 @@ export function IncidentInvestigationView({
                 onChange={(e) =>
                   setProposedSeverity(e.target.value as SeverityLevel)
                 }
-                className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-100"
+                className="w-full bg-[#080a0f] border border-white/12 px-3 py-2 text-[#f3f5f8] focus:outline-none focus:border-[#f5b82e]"
               >
                 {Object.entries(SEVERITY_META).map(([k, v]) => (
                   <option key={k} value={k}>
-                    {v.code} - {v.label}
+                    {v.code} — {v.label}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-slate-400 font-mono mb-1">
+              <label className="block text-[#8a94a6] mb-1.5">
                 Proposed Verification
               </label>
               <select
@@ -284,7 +301,7 @@ export function IncidentInvestigationView({
                 onChange={(e) =>
                   setProposedVerification(e.target.value as VerificationStatus)
                 }
-                className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-100"
+                className="w-full bg-[#080a0f] border border-white/12 px-3 py-2 text-[#f3f5f8] focus:outline-none focus:border-[#f5b82e]"
               >
                 {Object.entries(VERIFICATION_META).map(([k, v]) => (
                   <option key={k} value={k}>
@@ -295,22 +312,22 @@ export function IncidentInvestigationView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
             <div className="md:col-span-2">
-              <label className="block text-slate-400 font-mono mb-1">
-                Analytical Rationale (Required, min 10 chars)
+              <label className="block text-[#8a94a6] mb-1.5">
+                Analytical Rationale (Required)
               </label>
               <input
                 type="text"
-                placeholder="Explain the forensic or source evidence supporting this classification change..."
+                placeholder="Document the forensic or source evidence supporting this override..."
                 value={rationale}
                 onChange={(e) => setRationale(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-100"
+                className="w-full bg-[#080a0f] border border-white/12 px-3 py-2 text-[#f3f5f8] focus:outline-none focus:border-[#f5b82e]"
                 required
               />
             </div>
             <div>
-              <label className="block text-slate-400 font-mono mb-1">
+              <label className="block text-[#8a94a6] mb-1.5">
                 Supporting Source URL (Optional)
               </label>
               <input
@@ -318,34 +335,36 @@ export function IncidentInvestigationView({
                 placeholder="https://..."
                 value={supportingUrl}
                 onChange={(e) => setSupportingUrl(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-100"
+                className="w-full bg-[#080a0f] border border-white/12 px-3 py-2 text-[#f3f5f8] focus:outline-none focus:border-[#f5b82e]"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => setShowFeedbackForm(false)}
-              className="px-3 py-1.5 text-xs font-mono bg-slate-900 text-slate-300 border border-slate-700 rounded"
+              className="px-4 py-2 text-xs text-[#8a94a6] hover:text-white border border-white/10"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-1.5 text-xs font-mono bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold rounded disabled:opacity-50"
+              className="px-5 py-2 text-xs font-display font-semibold tracking-wider uppercase bg-[#f5b82e] hover:bg-[#fbbf24] text-[#080a0f] disabled:opacity-50 cursor-pointer"
             >
-              {submitting ? 'Applying Override...' : 'Commit Analyst Override'}
+              {submitting ? 'Applying...' : 'Commit Override'}
             </button>
           </div>
         </form>
       )}
 
-      {/* Primary Header Card */}
-      <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-5 space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <SeverityBadge severity={incident.severity} />
+      {/* ================================================================== */}
+      {/* PRIMARY BRIEFING HEADER & EXECUTIVE OVERVIEW                       */}
+      {/* ================================================================== */}
+      <section className="space-y-5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <SeverityBadge severity={incident.severity} showCode />
           <VerificationBadge
             status={incident.verification_status}
             independentSources={incident.independent_source_count}
@@ -360,390 +379,186 @@ export function IncidentInvestigationView({
           />
         </div>
 
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-50 leading-snug">
+        <div className="space-y-2">
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold text-[#f3f5f8] leading-tight">
             {incident.title}
           </h1>
-          <p className="text-xs font-mono text-cyan-400 mt-1">
-            Incident Type: {incident.incident_type} • Main Event:{' '}
-            {incident.main_event}
+          <p className="text-xs text-[#8a94a6]">
+            {incident.incident_type} — {incident.main_event}
           </p>
         </div>
 
-        {/* AI Provenance Notice & Summary */}
-        <div className="p-3.5 rounded bg-slate-900/70 border border-slate-800 space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
-            <span className="inline-flex items-center gap-1.5 text-cyan-300">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>
-                AI-Assisted Structured Summary & Extraction (Processor:{' '}
-                {incident.ai_model_used})
-              </span>
+        {/* Executive Overview Paragraph */}
+        <div className="p-6 bg-[#0c1018] border-l-2 border-[#f5b82e] space-y-3">
+          <div className="flex items-center justify-between text-xs text-[#8a94a6]">
+            <span className="font-display uppercase tracking-[0.16em] text-[#f3f5f8]">
+              :: EXECUTIVE OVERVIEW
             </span>
-            <span>
-              Traceable to {incident.sources.length} source record(s)
+            <span className="font-mono text-[11px]">
+              Processor: {incident.ai_model_used} • {incident.sources.length}{' '}
+              Linked Source(s)
             </span>
           </div>
-          <p className="text-sm text-slate-200 leading-relaxed">
+          <p className="text-sm sm:text-base text-[#cbd2dc] leading-relaxed">
             {incident.summary}
           </p>
         </div>
+      </section>
 
-        {/* 3-Timestamp Separation Bar (Occurrence vs Publication vs Ingestion) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-slate-800/80 text-xs font-mono">
-          <div className="p-2.5 rounded bg-slate-950/80 border border-slate-800/80">
-            <div className="text-slate-400 text-[10px] uppercase flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-amber-400" />
-              <span>Incident Occurrence Date</span>
-            </div>
-            <div className="text-slate-100 mt-1">
-              {incident.occurred_at
-                ? `${new Date(incident.occurred_at).toISOString().slice(0, 10)} UTC`
-                : 'Not Stated in Source (Unknown)'}
-            </div>
+      {/* ================================================================== */}
+      {/* ESSENTIAL INTELLIGENCE MATRIX (4 PILLARS)                          */}
+      {/* ================================================================== */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 1. Geographic Location */}
+        <div className="p-4 bg-[#0c1018] border-t border-white/15 space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-display tracking-[0.14em] text-[#8a94a6] uppercase">
+            <span className="w-2 h-2 rotate-45 bg-[#f5b82e]" />
+            <span>GEOGRAPHIC LOCATION</span>
           </div>
-
-          <div className="p-2.5 rounded bg-slate-950/80 border border-slate-800/80">
-            <div className="text-slate-400 text-[10px] uppercase flex items-center gap-1">
-              <FileText className="w-3 h-3 text-cyan-400" />
-              <span>First Report Published</span>
-            </div>
-            <div className="text-slate-100 mt-1">
-              {new Date(incident.first_published_at)
-                .toISOString()
-                .replace('T', ' ')
-                .slice(0, 19)}{' '}
-              UTC
-            </div>
+          <div className="text-sm font-medium text-[#f3f5f8] flex items-center gap-1.5 pt-1">
+            <Globe className="w-4 h-4 text-[#8a94a6] shrink-0" />
+            <span>
+              {incident.country_name
+                ? `${incident.country_name} (${incident.country_code})`
+                : incident.region_name || 'Global / Unspecified'}
+            </span>
           </div>
-
-          <div className="p-2.5 rounded bg-slate-950/80 border border-slate-800/80">
-            <div className="text-slate-400 text-[10px] uppercase flex items-center gap-1">
-              <Clock className="w-3 h-3 text-emerald-400" />
-              <span>Platform Discovery / Ingest</span>
-            </div>
-            <div className="text-slate-100 mt-1">
-              {new Date(incident.discovered_at)
-                .toISOString()
-                .replace('T', ' ')
-                .slice(0, 19)}{' '}
-              UTC
-            </div>
-          </div>
-
-          <div className="p-2.5 rounded bg-slate-950/80 border border-slate-800/80">
-            <div className="text-slate-400 text-[10px] uppercase flex items-center gap-1">
-              <History className="w-3 h-3 text-purple-400" />
-              <span>Last Record Update</span>
-            </div>
-            <div className="text-slate-100 mt-1">
-              {new Date(incident.updated_at)
-                .toISOString()
-                .replace('T', ' ')
-                .slice(0, 19)}{' '}
-              UTC
-            </div>
-          </div>
+          <p className="text-xs text-[#8a94a6]">
+            Precision: {incident.location_precision} • Basis:{' '}
+            {incident.location_basis.replace(/_/g, ' ')}
+          </p>
         </div>
-      </div>
 
-      {/* 3-Dimension Trust & Confidence Matrix (Section 8: Confidence Is Not Truth) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4">
-          <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-1.5">
-            <span>1. SOURCE RELIABILITY</span>
-            <span className="text-cyan-300 font-bold">
+        {/* 2. Threat Classification & Agent Fleet */}
+        <div className="p-4 bg-[#0c1018] border-t border-white/15 space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-display tracking-[0.14em] text-[#8a94a6] uppercase">
+            <span className="w-2 h-2 rotate-45 bg-[#ef4444]" />
+            <span>SWARM ARCHITECTURE</span>
+          </div>
+          <div className="text-sm font-medium text-[#f3f5f8] pt-1">
+            {incident.reported_agent_count !== null
+              ? `${incident.reported_agent_count.toLocaleString()} Coordinated Agents`
+              : incident.is_confirmed_swarm
+                ? 'Multi-Agent Swarm Documented'
+                : 'Single-Agent / Unverified'}
+          </div>
+          <p className="text-xs text-[#8a94a6] line-clamp-2">
+            {incident.human_supervision_level || incident.swarm_evidence}
+          </p>
+        </div>
+
+        {/* 3. Source Reliability */}
+        <div className="p-4 bg-[#0c1018] border-t border-white/15 space-y-1.5">
+          <div className="flex items-center justify-between text-xs font-display tracking-[0.14em] text-[#8a94a6] uppercase">
+            <span>SOURCE RELIABILITY</span>
+            <span className="font-mono text-[#f3f5f8]">
               {incident.source_reliability}/100
             </span>
           </div>
-          <div className="w-full h-1.5 bg-slate-900 rounded overflow-hidden mb-2">
+          <div className="w-full h-1.5 bg-white/[0.06] my-2">
             <div
-              className="h-full bg-cyan-400"
+              className="h-full bg-[#f5b82e]"
               style={{ width: `${incident.source_reliability}%` }}
             />
           </div>
-          <p className="text-xs text-slate-300">
-            Measures historical editorial and forensic trustworthiness of the reporting publication(s).{' '}
+          <p className="text-xs text-[#8a94a6]">
             {incident.has_primary_source
-              ? 'Includes direct primary-producer intelligence.'
-              : 'Derived from secondary or aggregator reporting.'}
+              ? 'Direct primary-producer disclosure.'
+              : 'Secondary reporting.'}
           </p>
         </div>
 
-        <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4">
-          <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-1.5">
-            <span>2. EVIDENCE STRENGTH</span>
-            <span className="uppercase px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300">
+        {/* 4. Verification & Evidence Strength */}
+        <div className="p-4 bg-[#0c1018] border-t border-white/15 space-y-1.5">
+          <div className="flex items-center justify-between text-xs font-display tracking-[0.14em] text-[#8a94a6] uppercase">
+            <span>EVIDENCE STRENGTH</span>
+            <span className="font-mono text-[#f5b82e] uppercase">
               {incident.evidence_strength}
             </span>
           </div>
-          <p className="text-xs text-slate-300 mt-2">
-            {incident.swarm_evidence}
-          </p>
-        </div>
-
-        <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4">
-          <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-1.5">
-            <span>3. CLASSIFICATION ALIGNMENT</span>
-            <span className="text-emerald-300 font-bold">
-              {Math.round(incident.classification_confidence * 100)}% (Uncalibrated)
-            </span>
+          <div className="text-sm font-medium text-[#f3f5f8] pt-1">
+            {Math.round(incident.classification_confidence * 100)}% Alignment
           </div>
-          <p className="text-xs text-slate-300 mt-1">
+          <p className="text-xs text-[#8a94a6] line-clamp-2">
             {incident.classification_rationale}
           </p>
         </div>
-      </div>
+      </section>
 
-      {/* Main Two-Column Investigation Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left 7 Cols: Sources, Claims, Quotations, Facts vs Uncertainties */}
-        <div className="lg:col-span-7 space-y-5">
-          {/* Contributing Sources & Quotations */}
-          <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-              <div className="flex items-center gap-2">
-                <Scale className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-sm font-semibold text-slate-100">
-                  Supporting Sources & Traceable Quotations ({incident.sources.length})
-                </h2>
-              </div>
-              <span className="text-[11px] font-mono text-slate-400">
-                {incident.independent_source_count} independent domain(s)
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {incident.sources.map(({ link, record, source }) => (
-                <div
-                  key={link.id}
-                  className="p-3.5 rounded bg-slate-950/90 border border-slate-800/90 space-y-2"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded bg-cyan-950/90 text-cyan-300 border border-cyan-700/60">
-                        {link.relationship_type.replace(/_/g, ' ')}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-200">
-                        {source.name}
-                      </span>
-                      <span className="text-[11px] font-mono text-slate-400">
-                        (Reliability: {source.reliability_score}/100)
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-mono text-slate-400">
-                      Published:{' '}
-                      {new Date(record.published_at)
-                        .toISOString()
-                        .replace('T', ' ')
-                        .slice(0, 16)}{' '}
-                      UTC
-                    </span>
-                  </div>
-
-                  <div className="text-xs font-medium text-slate-100">
-                    {record.title}
-                  </div>
-
-                  {link.quotation && (
-                    <div className="p-2.5 rounded bg-slate-900/90 border-l-2 border-cyan-500 text-xs text-slate-300 italic flex items-start gap-2">
-                      <Quote className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
-                      <span>{link.quotation}</span>
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] font-mono">
-                    <span className="text-slate-400 truncate max-w-md">
-                      Canonical: {record.canonical_url}
-                    </span>
-                    <a
-                      href={record.original_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 underline"
-                    >
-                      <span>Open Original Publication</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {/* ================================================================== */}
+      {/* ASSOCIATED AI ACTORS, ORGANIZATIONS & SOURCE ATTRIBUTION           */}
+      {/* ================================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left 7 Cols: Source Attribution & Traceable Quotations */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+            <h2 className="font-display text-xs font-semibold tracking-[0.18em] uppercase text-[#f3f5f8]">
+              :: SOURCE ATTRIBUTION ({incident.sources.length})
+            </h2>
+            <span className="text-xs text-[#8a94a6]">
+              {incident.independent_source_count} independent domain(s)
+            </span>
           </div>
 
-          {/* Known Facts vs Uncertain Claims vs Contradictions */}
-          <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-slate-100 border-b border-slate-800 pb-2.5">
-              Analytical Decomposition: Known Facts vs. Uncertainties & Contradictions
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3 rounded bg-emerald-950/20 border border-emerald-800/50">
-                <div className="flex items-center gap-1.5 text-xs font-mono uppercase text-emerald-300 mb-2">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Documented Facts ({incident.known_facts.length})</span>
-                </div>
-                <ul className="space-y-1.5 text-xs text-slate-200 list-disc list-inside">
-                  {incident.known_facts.map((fact, idx) => (
-                    <li key={idx} className="leading-relaxed">
-                      {fact}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="p-3 rounded bg-amber-950/20 border border-amber-800/50">
-                <div className="flex items-center gap-1.5 text-xs font-mono uppercase text-amber-300 mb-2">
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  <span>
-                    Unresolved Uncertainties ({incident.uncertainties.length})
+          <div className="space-y-3">
+            {incident.sources.map(({ link, record, source }) => (
+              <div
+                key={link.id}
+                className="p-4 bg-[#0c1018] border border-white/[0.07] space-y-2.5"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 text-[10px] font-mono uppercase bg-white/[0.05] text-[#f5b82e] border border-[#f5b82e]/30">
+                      {link.relationship_type.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-xs font-semibold text-[#f3f5f8]">
+                      {source.name}
+                    </span>
+                    <span className="text-xs font-mono text-[#8a94a6]">
+                      ({source.reliability_score}/100)
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono text-[#8a94a6]">
+                    {new Date(record.published_at).toISOString().slice(0, 10)}
                   </span>
                 </div>
-                {incident.uncertainties.length > 0 ? (
-                  <ul className="space-y-1.5 text-xs text-slate-200 list-disc list-inside">
-                    {incident.uncertainties.map((u, idx) => (
-                      <li key={idx} className="leading-relaxed">
-                        {u}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-xs text-slate-400">
-                    No major unresolved uncertainties flagged.
-                  </p>
-                )}
-              </div>
-            </div>
 
-            <div className="p-3 rounded bg-red-950/20 border border-red-900/50">
-              <div className="flex items-center gap-1.5 text-xs font-mono uppercase text-red-300 mb-1.5">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>
-                  Conflicting / Contradictory Accounts ({incident.contradictions.length})
-                </span>
-              </div>
-              {incident.contradictions.length > 0 ? (
-                <ul className="space-y-1.5 text-xs text-red-200 list-disc list-inside">
-                  {incident.contradictions.map((c, idx) => (
-                    <li key={idx}>{c}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-slate-400">
-                  No contradictory claims detected across linked sources.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Event Timeline */}
-          <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4 space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
-              <Clock className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-100">
-                Chronological Event & Ingestion Timeline
-              </h2>
-            </div>
-            <div className="space-y-3 pl-2 border-l border-slate-800">
-              {(incident.timeline || []).map((ev) => (
-                <div key={ev.id} className="relative pl-4">
-                  <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-cyan-400 border-2 border-slate-950" />
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-                    <span className="uppercase px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300 border border-slate-800">
-                      {ev.phase_type}
-                    </span>
-                    <span className="text-slate-400">
-                      {new Date(ev.event_time)
-                        .toISOString()
-                        .replace('T', ' ')
-                        .slice(0, 19)}{' '}
-                      UTC
-                    </span>
-                  </div>
-                  <p className="text-xs font-semibold text-slate-100 mt-1">
-                    {ev.title}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {ev.description}
-                  </p>
+                <div className="text-sm font-medium text-[#cbd2dc]">
+                  {record.title}
                 </div>
-              ))}
-            </div>
+
+                {link.quotation && (
+                  <div className="p-3 bg-white/[0.02] border-l-2 border-white/20 text-xs text-[#8a94a6] italic flex items-start gap-2">
+                    <Quote className="w-3.5 h-3.5 text-[#f5b82e] shrink-0 mt-0.5" />
+                    <span>{link.quotation}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-1 text-xs">
+                  <span className="font-mono text-[11px] text-[#64748b] truncate max-w-sm">
+                    {record.canonical_url}
+                  </span>
+                  <a
+                    href={record.original_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[#f5b82e] hover:underline font-medium"
+                  >
+                    <span>Source Publication</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Right 5 Cols: Agent Architecture, Entities, Geolocation, History, Related */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* Swarm & Agent Architecture Telemetry */}
-          <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4 space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
-              <Bot className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-100">
-                Swarm Architecture & Impact Assessment
-              </h2>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div className="p-2.5 rounded bg-slate-950 border border-slate-800">
-                <span className="font-mono text-[10px] uppercase text-slate-400 block">
-                  Reported Number of AI Agents
-                </span>
-                <span className="text-sm font-mono font-bold text-cyan-300">
-                  {incident.reported_agent_count !== null
-                    ? `${incident.reported_agent_count} Agents Documented`
-                    : 'Unknown / Not Explicitly Stated'}
-                </span>
-                {incident.reported_agent_count_note && (
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    {incident.reported_agent_count_note}
-                  </p>
-                )}
-              </div>
-
-              <div className="p-2.5 rounded bg-slate-950 border border-slate-800">
-                <span className="font-mono text-[10px] uppercase text-slate-400 block">
-                  Human Supervision / Autonomy Level
-                </span>
-                <span className="text-slate-200 font-medium">
-                  {incident.human_supervision_level || 'Not documented'}
-                </span>
-              </div>
-
-              <div className="p-2.5 rounded bg-slate-950 border border-slate-800">
-                <span className="font-mono text-[10px] uppercase text-slate-400 block">
-                  Documented Impact
-                </span>
-                <span className="text-slate-200">
-                  {incident.reported_impact || 'Not specified in source excerpt'}
-                </span>
-              </div>
-
-              <div className="p-2.5 rounded bg-slate-950 border border-slate-800">
-                <span className="font-mono text-[10px] uppercase text-slate-400 block mb-1">
-                  Geographic Attribution & Basis
-                </span>
-                <div className="flex items-center gap-2 text-slate-200 font-mono">
-                  <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>
-                    {incident.country_name
-                      ? `${incident.country_name} (${incident.country_code}) — ${incident.region_name}`
-                      : incident.region_name || 'Location Unspecified / Global'}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Precision: {incident.location_precision} • Attribution Basis:{' '}
-                  {incident.location_basis.replace(/_/g, ' ')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Named Organizations, Actors & Agent Frameworks */}
-          <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4 space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
-              <Building2 className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-100">
-                Named Organizations, Actors & Frameworks ({incident.entities.length})
+        {/* Right 5 Cols: Associated AI Actors, Organizations & Impact */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="space-y-4">
+            <div className="border-b border-white/10 pb-2.5">
+              <h2 className="font-display text-xs font-semibold tracking-[0.18em] uppercase text-[#f3f5f8]">
+                :: ASSOCIATED ACTORS & SYSTEMS ({incident.entities.length})
               </h2>
             </div>
 
@@ -752,101 +567,130 @@ export function IncidentInvestigationView({
                 {incident.entities.map(({ link, entity }) => (
                   <div
                     key={link.id}
-                    className="p-2.5 rounded bg-slate-950 border border-slate-800 flex items-center justify-between gap-2 text-xs"
+                    className="p-3.5 bg-[#0c1018] border border-white/[0.07] flex items-center justify-between gap-3"
                   >
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                        <span className="font-semibold text-slate-100">
-                          {entity.name}
-                        </span>
+                      <div className="text-sm font-medium text-[#f3f5f8]">
+                        {entity.name}
                       </div>
-                      <span className="text-[11px] font-mono text-slate-400 block mt-0.5">
-                        Role: {link.role.replace(/_/g, ' ')} • Type:{' '}
+                      <div className="text-xs text-[#8a94a6] mt-0.5 capitalize">
+                        {link.role.replace(/_/g, ' ')} •{' '}
                         {entity.entity_type.replace(/_/g, ' ')}
-                      </span>
+                      </div>
                     </div>
-                    <span
-                      className={`px-2 py-0.5 text-[10px] font-mono uppercase rounded border ${
-                        link.relationship_certainty === 'confirmed'
-                          ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60'
-                          : 'bg-slate-900 text-slate-300 border-slate-700'
-                      }`}
-                    >
+                    <span className="px-2 py-0.5 text-[10px] font-mono uppercase bg-white/[0.04] text-[#cbd2dc] border border-white/10">
                       {link.relationship_certainty}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400">
-                No specific named organizations or agent frameworks extracted from this excerpt.
+              <p className="text-xs text-[#8a94a6] p-4 bg-[#0c1018] border border-white/[0.07]">
+                No named organizations or agent frameworks extracted from this summary.
               </p>
             )}
           </div>
 
-          {/* Classification History Audit Trail */}
-          <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4 space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
-              <History className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-100">
-                Classification & Verification History
-              </h2>
+          {/* Documented Impact */}
+          {incident.reported_impact && (
+            <div className="p-4 bg-[#0c1018] border-t border-white/15 space-y-1.5">
+              <span className="font-display text-xs font-semibold tracking-[0.16em] uppercase text-[#8a94a6]">
+                :: DOCUMENTED IMPACT
+              </span>
+              <p className="text-xs text-[#cbd2dc] leading-relaxed">
+                {incident.reported_impact}
+              </p>
             </div>
+          )}
+        </div>
+      </div>
 
-            <div className="space-y-2.5">
-              {(incident.classification_history || []).map((ch) => (
-                <div
-                  key={ch.id}
-                  className="p-2.5 rounded bg-slate-950 border border-slate-800 text-xs space-y-1"
-                >
-                  <div className="flex items-center justify-between font-mono text-[11px]">
-                    <span className="text-cyan-300">{ch.model_or_actor}</span>
-                    <span className="text-slate-400">
-                      {new Date(ch.classified_at)
-                        .toISOString()
-                        .replace('T', ' ')
-                        .slice(0, 16)}{' '}
-                      UTC
-                    </span>
-                  </div>
-                  <div className="text-[11px] font-mono text-slate-300">
-                    Category: {ch.new_category} • Severity: {ch.new_severity} •
-                    Verification: {ch.new_verification}
-                  </div>
-                  <p className="text-slate-400 text-[11px]">{ch.rationale}</p>
+      {/* ================================================================== */}
+      {/* PROGRESSIVE DISCLOSURE SECTIONS                                    */}
+      {/* ================================================================== */}
+      <div className="space-y-3 pt-2">
+        {/* 1. TIMELINE OF DEVELOPMENTS & TEMPORAL SEPARATION */}
+        <div className="bg-[#0c1018] border border-white/[0.08]">
+          <button
+            type="button"
+            onClick={() => setShowTimeline((v) => !v)}
+            className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-2 h-2 rotate-45 bg-[#f5b82e]" />
+              <span className="font-display text-xs font-semibold tracking-[0.18em] uppercase text-[#f3f5f8]">
+                TIMELINE OF DEVELOPMENTS & TEMPORAL SEPARATION
+              </span>
+            </div>
+            {showTimeline ? (
+              <ChevronUp className="w-4 h-4 text-[#8a94a6]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[#8a94a6]" />
+            )}
+          </button>
+
+          {showTimeline && (
+            <div className="px-5 pb-5 pt-2 border-t border-white/[0.06] space-y-5">
+              {/* 3-Timestamp Separation Strip */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 bg-[#080a0f] border border-white/[0.06]">
+                  <span className="text-[#8a94a6] block text-[11px]">
+                    1. Incident Occurrence Date
+                  </span>
+                  <span className="font-mono text-[#f3f5f8] mt-1 block">
+                    {incident.occurred_at
+                      ? `${new Date(incident.occurred_at).toISOString().slice(0, 10)} UTC`
+                      : 'Not Stated in Source'}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Related Incidents */}
-          {incident.related_incidents && incident.related_incidents.length > 0 && (
-            <div className="bg-[#0b0f17] border border-slate-800/90 rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
-                <GitMerge className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-sm font-semibold text-slate-100">
-                  Related Intelligence Reports
-                </h2>
+                <div className="p-3 bg-[#080a0f] border border-white/[0.06]">
+                  <span className="text-[#8a94a6] block text-[11px]">
+                    2. First Source Publication
+                  </span>
+                  <span className="font-mono text-[#f3f5f8] mt-1 block">
+                    {new Date(incident.first_published_at)
+                      .toISOString()
+                      .replace('T', ' ')
+                      .slice(0, 16)}{' '}
+                    UTC
+                  </span>
+                </div>
+                <div className="p-3 bg-[#080a0f] border border-white/[0.06]">
+                  <span className="text-[#8a94a6] block text-[11px]">
+                    3. Platform Ingestion Timestamp
+                  </span>
+                  <span className="font-mono text-[#f3f5f8] mt-1 block">
+                    {new Date(incident.discovered_at)
+                      .toISOString()
+                      .replace('T', ' ')
+                      .slice(0, 16)}{' '}
+                    UTC
+                  </span>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                {incident.related_incidents.map((rel) => (
-                  <div
-                    key={rel.id}
-                    onClick={() => onSelectRelatedIncident?.(rel.slug)}
-                    className="p-2.5 rounded bg-slate-950 hover:bg-slate-900 border border-slate-800 cursor-pointer transition text-xs"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <SeverityBadge severity={rel.severity} />
-                      <span className="text-[11px] font-mono text-slate-400">
-                        {new Date(rel.first_published_at)
+              {/* Chronological Events */}
+              <div className="space-y-3 pl-3 border-l border-white/15">
+                {(incident.timeline || []).map((ev) => (
+                  <div key={ev.id} className="relative pl-4">
+                    <span className="absolute -left-[5px] top-1.5 w-2 h-2 rotate-45 bg-[#f5b82e]" />
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <span className="font-mono text-[11px] uppercase text-[#f5b82e]">
+                        {ev.phase_type}
+                      </span>
+                      <span className="font-mono text-[11px] text-[#8a94a6]">
+                        {new Date(ev.event_time)
                           .toISOString()
-                          .slice(0, 10)}
+                          .replace('T', ' ')
+                          .slice(0, 16)}{' '}
+                        UTC
                       </span>
                     </div>
-                    <p className="text-slate-200 font-medium line-clamp-2">
-                      {rel.title}
+                    <div className="text-xs font-medium text-[#f3f5f8] mt-0.5">
+                      {ev.title}
+                    </div>
+                    <p className="text-xs text-[#8a94a6] mt-0.5">
+                      {ev.description}
                     </p>
                   </div>
                 ))}
@@ -854,7 +698,165 @@ export function IncidentInvestigationView({
             </div>
           )}
         </div>
+
+        {/* 2. ANALYTICAL DECOMPOSITION (KNOWN FACTS VS UNCERTAINTIES) */}
+        <div className="bg-[#0c1018] border border-white/[0.08]">
+          <button
+            type="button"
+            onClick={() => setShowAnalyticalDecomp((v) => !v)}
+            className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-2 h-2 rotate-45 border border-[#f5b82e]" />
+              <span className="font-display text-xs font-semibold tracking-[0.18em] uppercase text-[#f3f5f8]">
+                ANALYTICAL DECOMPOSITION: FACTS VS. UNCERTAINTIES
+              </span>
+            </div>
+            {showAnalyticalDecomp ? (
+              <ChevronUp className="w-4 h-4 text-[#8a94a6]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[#8a94a6]" />
+            )}
+          </button>
+
+          {showAnalyticalDecomp && (
+            <div className="px-5 pb-5 pt-2 border-t border-white/[0.06] grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 bg-[#080a0f] border border-white/[0.06] space-y-2">
+                <span className="font-display uppercase tracking-wider text-[#f3f5f8] block">
+                  Documented Facts ({incident.known_facts.length})
+                </span>
+                <ul className="space-y-1.5 text-[#cbd2dc] list-disc list-inside">
+                  {incident.known_facts.map((fact, idx) => (
+                    <li key={idx} className="leading-relaxed">
+                      {fact}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-4 bg-[#080a0f] border border-white/[0.06] space-y-2">
+                <span className="font-display uppercase tracking-wider text-[#f5b82e] block">
+                  Uncertainties ({incident.uncertainties.length})
+                </span>
+                {incident.uncertainties.length > 0 ? (
+                  <ul className="space-y-1.5 text-[#cbd2dc] list-disc list-inside">
+                    {incident.uncertainties.map((u, idx) => (
+                      <li key={idx} className="leading-relaxed">
+                        {u}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[#8a94a6]">
+                    No major unresolved uncertainties flagged.
+                  </p>
+                )}
+              </div>
+
+              <div className="p-4 bg-[#080a0f] border border-white/[0.06] space-y-2">
+                <span className="font-display uppercase tracking-wider text-[#ef4444] block">
+                  Contradictions ({incident.contradictions.length})
+                </span>
+                {incident.contradictions.length > 0 ? (
+                  <ul className="space-y-1.5 text-[#fca5a5] list-disc list-inside">
+                    {incident.contradictions.map((c, idx) => (
+                      <li key={idx} className="leading-relaxed">
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[#8a94a6]">
+                    No conflicting accounts across linked sources.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 3. CLASSIFICATION AUDIT TRAIL */}
+        <div className="bg-[#0c1018] border border-white/[0.08]">
+          <button
+            type="button"
+            onClick={() => setShowAuditHistory((v) => !v)}
+            className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-2 h-2 rotate-45 border border-[#8a94a6]" />
+              <span className="font-display text-xs font-semibold tracking-[0.18em] uppercase text-[#cbd2dc]">
+                CLASSIFICATION AUDIT HISTORY (
+                {(incident.classification_history || []).length})
+              </span>
+            </div>
+            {showAuditHistory ? (
+              <ChevronUp className="w-4 h-4 text-[#8a94a6]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[#8a94a6]" />
+            )}
+          </button>
+
+          {showAuditHistory && (
+            <div className="px-5 pb-5 pt-2 border-t border-white/[0.06] space-y-2.5 text-xs">
+              {(incident.classification_history || []).map((ch) => (
+                <div
+                  key={ch.id}
+                  className="p-3 bg-[#080a0f] border border-white/[0.06] space-y-1"
+                >
+                  <div className="flex items-center justify-between font-mono text-[11px]">
+                    <span className="text-[#f5b82e]">{ch.model_or_actor}</span>
+                    <span className="text-[#8a94a6]">
+                      {new Date(ch.classified_at)
+                        .toISOString()
+                        .replace('T', ' ')
+                        .slice(0, 16)}{' '}
+                      UTC
+                    </span>
+                  </div>
+                  <div className="text-[#cbd2dc]">
+                    Category: {ch.new_category} • Severity: {ch.new_severity} •
+                    Verification: {ch.new_verification}
+                  </div>
+                  <p className="text-[#8a94a6]">{ch.rationale}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ================================================================== */}
+      {/* RELATED INCIDENTS                                                  */}
+      {/* ================================================================== */}
+      {incident.related_incidents && incident.related_incidents.length > 0 && (
+        <section className="space-y-3 pt-2">
+          <div className="border-b border-white/10 pb-2.5">
+            <h2 className="font-display text-xs font-semibold tracking-[0.18em] uppercase text-[#f3f5f8]">
+              :: RELATED INTELLIGENCE DOSSIERS
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {incident.related_incidents.map((rel) => (
+              <div
+                key={rel.id}
+                onClick={() => onSelectRelatedIncident?.(rel.slug)}
+                className="p-4 bg-[#0c1018] hover:bg-[#111621] border border-white/[0.07] hover:border-[#f5b82e]/40 cursor-pointer transition space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <SeverityBadge severity={rel.severity} />
+                  <span className="font-mono text-[11px] text-[#8a94a6]">
+                    {new Date(rel.first_published_at).toISOString().slice(0, 10)}
+                  </span>
+                </div>
+                <div className="text-sm font-medium text-[#f3f5f8] line-clamp-2">
+                  {rel.title}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

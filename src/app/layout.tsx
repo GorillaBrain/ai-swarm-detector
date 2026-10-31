@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 
 const geistSans = Geist({
@@ -12,10 +12,16 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: '--font-display',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+});
+
 export const metadata: Metadata = {
-  title: 'AI SWARM DETECTOR | Global AI Agent Threat Intelligence & Incident Monitoring',
+  title: 'AI Swarm Detector — Global AI Agent Threat Intelligence',
   description:
-    'Specialized OSINT threat intelligence and incident research platform monitoring publicly reported coordinated AI agents, agentic cyber operations, infrastructure abuse, and multi-agent systems.',
+    'Cinematic OSINT threat intelligence and incident monitoring platform tracking coordinated AI agents, autonomous cyber operations, and multi-agent systems.',
 };
 
 export default function RootLayout({
@@ -26,9 +32,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} dark h-full antialiased`}
     >
-      <body className="h-full overflow-hidden bg-[#07090e] text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200">
+      <body className="h-full overflow-hidden bg-[#080a0f] text-[#f3f5f8] selection:bg-[#f5b82e]/25 selection:text-[#f5b82e]">
         {children}
       </body>
     </html>
