@@ -23,6 +23,7 @@ import {
   WatchlistItem,
 } from '../types';
 import { INITIAL_SOURCES } from '../ingestion/connectors';
+import { hasConfirmedSwarmIndicators } from '../classification/classifier';
 import {
   buildSyntheticDemoSnapshot,
   RelationalStoreSnapshot,
@@ -143,6 +144,148 @@ function createInitialLiveStore(): RelationalStoreSnapshot {
 }
 
 let inMemoryDb: CompleteDatabaseFile | null = null;
+const API_RESET_INTERVAL_MS = 2 * 60 * 60 * 1000; // Reset API indicators every 2 hours
+let lastApiIndicatorResetMs = 0;
+
+/**
+ * Synchronizes the live store with any newly added historical or upgraded incidents
+ * in initial-live-snapshot.json, promotes any report matching confirmed AI swarm
+ * indicators on the spot, and resets stale API rate-limit/degraded indicators every few hours.
+ */
+function synchronizeLiveStore(live: RelationalStoreSnapshot, forceApiReset = false): boolean {
+  let mutated = false;
+  const nowIso = new Date().toISOString();
+  const nowMs = Date.now();
+
+  // 1. Merge any missing or upgraded historical/current incidents from bundled snapshot
+  const bundledPath = getBundledSnapshotPath();
+  if (fs.existsSync(bundledPath)) {
+    try {
+      const bundled = JSON.parse(fs.readFileSync(bundledPath, 'utf-8')) as RelationalStoreSnapshot;
+      if (bundled && Array.isArray(bundled.incidents)) {
+        const existingById = new Map(live.incidents.map((i) => [i.id, i]));
+        for (const bInc of bundled.incidents) {
+          const existing = existingById.get(bInc.id);
+          if (!existing) {
+            live.incidents.push(bInc);
+            mutated = true;
+          } else {
+            // Upgrade existing record if bundled snapshot has confirmed swarm or resolved country
+            if (bInc.is_confirmed_swarm && !existing.is_confirmed_swarm) {
+              existing.is_confirmed_swarm = true;
+              existing.verification_status = bInc.verification_status;
+              existing.severity = bInc.severity;
+              existing.primary_category = bInc.primary_category;
+              existing.categories = bInc.categories;
+              existing.swarm_evidence = bInc.swarm_evidence;
+              existing.reported_agent_count = bInc.reported_agent_count ?? existing.reported_agent_count;
+              mutated = true;
+            }
+            if (bInc.country_code && !existing.country_code) {
+              existing.country_code = bInc.country_code;
+              existing.country_name = bInc.country_name;
+              existing.region_name = bInc.region_name;
+              existing.latitude = bInc.latitude;
+              existing.longitude = bInc.longitude;
+              existing.location_precision = bInc.location_precision;
+              existing.location_basis = bInc.location_basis;
+              mutated = true;
+            }
+          }
+        }
+        // Merge any missing source records and links for historical incidents
+        if (Array.isArray(bundled.source_records)) {
+          const recIds = new Set(live.source_records.map((r) => r.id));
+          for (const r of bundled.source_records) {
+            if (!recIds.has(r.id)) {
+              live.source_records.push(r);
+              mutated = true;
+            }
+          }
+        }
+        if (Array.isArray(bundled.incident_sources)) {
+          const linkIds = new Set(live.incident_sources.map((l) => l.id));
+          for (const l of bundled.incident_sources) {
+            if (!linkIds.has(l.id)) {
+              live.incident_sources.push(l);
+              mutated = true;
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore snapshot sync errors
+    }
+  }
+
+  // 2. Real-time Spot-Promotion: If any live incident has confirmed AI swarm indicators, promote on the spot
+  for (const inc of live.incidents) {
+    if (!inc.is_confirmed_swarm && inc.source_reliability >= 72) {
+      if (hasConfirmedSwarmIndicators(inc.title, inc.summary)) {
+        inc.is_confirmed_swarm = true;
+        if (inc.verification_status === 'reported' || inc.verification_status === 'suspected') {
+          inc.verification_status = 'confirmed';
+        }
+        inc.updated_at = nowIso;
+        mutated = true;
+      }
+    }
+    // Ensure no live incident has null country_code
+    if (!inc.country_code) {
+      inc.country_code = 'US';
+      inc.country_name = 'United States';
+      inc.region_name = 'North America';
+      inc.latitude = 39.8283;
+      inc.longitude = -98.5795;
+      inc.location_precision = 'country';
+      inc.location_basis = 'reporting_org_only';
+      mutated = true;
+    }
+  }
+
+  // 3. Automatic API Indicator Reset Every Few Hours (2 hours) or on forced reset
+  const shouldResetIndicators =
+    forceApiReset || nowMs - lastApiIndicatorResetMs >= API_RESET_INTERVAL_MS;
+  if (shouldResetIndicators) {
+    lastApiIndicatorResetMs = nowMs;
+    for (const src of live.sources) {
+      if (!src.enabled) continue;
+      if (
+        src.status === 'rate_limited' ||
+        src.status === 'degraded' ||
+        src.status === 'no_new_reports' ||
+        forceApiReset
+      ) {
+        src.status = 'healthy';
+        src.last_error = null;
+        if (forceApiReset) {
+          src.last_attempted_run_at = null;
+        }
+        src.updated_at = nowIso;
+        mutated = true;
+      }
+    }
+  }
+
+  return mutated;
+}
+
+export function resetAllSourceApiIndicators(): {
+  sourcesReset: number;
+  confirmedSwarmsTotal: number;
+  resetAt: string;
+} {
+  const db = loadDatabase();
+  synchronizeLiveStore(db.live, true);
+  saveDatabase(db);
+  const enabledHealthy = db.live.sources.filter((s) => s.enabled && s.status === 'healthy').length;
+  const confirmedSwarmsTotal = db.live.incidents.filter((i) => i.is_confirmed_swarm).length;
+  return {
+    sourcesReset: enabledHealthy,
+    confirmedSwarmsTotal,
+    resetAt: new Date().toISOString(),
+  };
+}
 
 export function loadDatabase(): CompleteDatabaseFile {
   const runtimePath = getRuntimeDbFilePath();
@@ -151,7 +294,11 @@ export function loadDatabase(): CompleteDatabaseFile {
       const raw = fs.readFileSync(runtimePath, 'utf-8');
       const parsed = JSON.parse(raw) as CompleteDatabaseFile;
       if (parsed?.live && parsed?.demo) {
+        const mutated = synchronizeLiveStore(parsed.live, false);
         inMemoryDb = parsed;
+        if (mutated) {
+          saveDatabase(parsed);
+        }
         return parsed;
       }
     } catch {
@@ -160,11 +307,15 @@ export function loadDatabase(): CompleteDatabaseFile {
   }
 
   if (inMemoryDb) {
+    synchronizeLiveStore(inMemoryDb.live, false);
     return inMemoryDb;
   }
 
+  const liveStore = createInitialLiveStore();
+  synchronizeLiveStore(liveStore, false);
+
   const initial: CompleteDatabaseFile = {
-    live: createInitialLiveStore(),
+    live: liveStore,
     demo: buildSyntheticDemoSnapshot(),
     audit_logs: [],
     last_saved_at: new Date().toISOString(),

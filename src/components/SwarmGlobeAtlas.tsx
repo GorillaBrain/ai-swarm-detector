@@ -139,7 +139,11 @@ export function SwarmGlobeAtlas({
         return (
           s.title.toLowerCase().includes(q) ||
           s.countryName.toLowerCase().includes(q) ||
-          s.countryCode.toLowerCase().includes(q)
+          s.countryCode.toLowerCase().includes(q) ||
+          (s.originCountryName || '').toLowerCase().includes(q) ||
+          (s.targetCountryName || '').toLowerCase().includes(q) ||
+          (s.targetName || '').toLowerCase().includes(q) ||
+          (s.publishedDate || '').toLowerCase().includes(q)
         );
       }
       return true;
@@ -366,23 +370,44 @@ export function SwarmGlobeAtlas({
       ctx.lineWidth = 0.6;
       ctx.stroke();
 
-      // 4. Continental Landmasses
+      // 4. Continental Landmasses (Highlight Origin Country & Target Country)
       const features = countriesGeoJson.features || [];
+      const activeTargetAtlasName =
+        activeSignal?.isConfirmedSwarm && activeSignal?.targetCountryName
+          ? activeSignal.targetCountryName === 'United States'
+            ? 'United States of America'
+            : activeSignal.targetCountryName
+          : '';
+      const activeOriginAtlasName =
+        selectedCountryName === 'United States'
+          ? 'United States of America'
+          : selectedCountryName;
+
       for (const feat of features) {
         const countryName = feat.properties?.name || '';
-        const isSelectedCountry = countryName === selectedCountryName;
+        const isSelectedOrigin =
+          countryName === selectedCountryName ||
+          countryName === activeOriginAtlasName;
+        const isSelectedTarget =
+          Boolean(activeTargetAtlasName) &&
+          (countryName === activeSignal?.targetCountryName ||
+            countryName === activeTargetAtlasName);
 
         ctx.beginPath();
         path(feat);
 
-        if (isSelectedCountry) {
+        if (isSelectedOrigin) {
           ctx.fillStyle = isActiveMalicious
-            ? 'rgba(239, 68, 68, 0.16)'
+            ? 'rgba(245, 184, 46, 0.16)'
             : 'rgba(245, 184, 46, 0.14)';
           ctx.fill();
-          ctx.strokeStyle = isActiveMalicious
-            ? 'rgba(239, 68, 68, 0.65)'
-            : 'rgba(245, 184, 46, 0.65)';
+          ctx.strokeStyle = 'rgba(245, 184, 46, 0.72)';
+          ctx.lineWidth = 1.25;
+          ctx.stroke();
+        } else if (isSelectedTarget) {
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.18)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(239, 68, 68, 0.72)';
           ctx.lineWidth = 1.25;
           ctx.stroke();
         } else {
@@ -488,11 +513,26 @@ export function SwarmGlobeAtlas({
           drawDiamond(
             targetPt[0],
             targetPt[1],
-            isCurrent ? 4 : 3,
+            isCurrent ? 4.5 : 3,
             '#ef4444',
             '#fca5a5',
             1
           );
+
+          // Target Country callout label on the globe for the selected confirmed swarm
+          if (isCurrent && sig.targetCountryName) {
+            const tgtLabel = `TARGET: ${sig.targetCountryName.toUpperCase()} (${sig.targetCountryCode})`;
+            ctx.font = '600 9.5px monospace';
+            ctx.textAlign = 'center';
+            const tw = ctx.measureText(tgtLabel).width;
+            ctx.fillStyle = 'rgba(18, 10, 14, 0.9)';
+            ctx.fillRect(targetPt[0] - tw / 2 - 5, targetPt[1] - 26, tw + 10, 15);
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
+            ctx.lineWidth = 0.8;
+            ctx.strokeRect(targetPt[0] - tw / 2 - 5, targetPt[1] - 26, tw + 10, 15);
+            ctx.fillStyle = '#fca5a5';
+            ctx.fillText(tgtLabel, targetPt[0], targetPt[1] - 15.5);
+          }
         }
       }
 
@@ -574,13 +614,16 @@ export function SwarmGlobeAtlas({
           drawDiamond(x, y, 10, '#f5b82e', '#080a0f', 1.5);
           drawDiamond(x, y, 3.5, '#080a0f');
 
-          // Coordinate label below selected diamond
-          const coordText = formatCoordinate(sig.lat, sig.lon);
+          // Coordinate & Origin->Target vector label below selected diamond
+          const coordText =
+            sig.isConfirmedSwarm && sig.targetCountryCode
+              ? `ORIGIN: ${sig.originCountryCode} ➔ TARGET: ${sig.targetCountryCode} • ${formatCoordinate(sig.lat, sig.lon)}`
+              : formatCoordinate(sig.lat, sig.lon);
           ctx.font = '600 10px monospace';
           ctx.textAlign = 'center';
-          ctx.fillStyle = 'rgba(8, 10, 15, 0.85)';
+          ctx.fillStyle = 'rgba(8, 10, 15, 0.88)';
           const textWidth = ctx.measureText(coordText).width;
-          ctx.fillRect(x - textWidth / 2 - 5, y + 14, textWidth + 10, 16);
+          ctx.fillRect(x - textWidth / 2 - 6, y + 14, textWidth + 12, 16);
           ctx.fillStyle = '#f3f5f8';
           ctx.fillText(coordText, x, y + 25);
           placedLabels.push({ x, y: y + 20 });
@@ -955,13 +998,14 @@ export function SwarmGlobeAtlas({
                 {/* Bottom row inside visual card (Large Code like GJ 504B) */}
                 <div className="relative z-10">
                   <div className="font-display text-2xl font-semibold tracking-wider text-[#f3f5f8] uppercase">
-                    {activeSignal.countryCode} // {severityMeta.code}
+                    {activeSignal.isConfirmedSwarm && activeSignal.targetCountryCode
+                      ? `${activeSignal.originCountryCode} ➔ ${activeSignal.targetCountryCode} // ${severityMeta.code}`
+                      : `${activeSignal.countryCode} // ${severityMeta.code}`}
                   </div>
-                  <div className="text-xs text-[#8a94a6] truncate">
+                  <div className="text-xs text-[#cbd2dc] truncate">
                     {activeSignal.isConfirmedSwarm &&
-                    activeSignal.isMaliciousSwarm &&
-                    activeSignal.targetName
-                      ? `${activeSignal.originName || activeSignal.countryName} ➔ ${activeSignal.targetName}`
+                    activeSignal.targetCountryName
+                      ? `Origin: ${activeSignal.originCountryName} ➔ Target: ${activeSignal.targetCountryName}`
                       : `${activeSignal.countryName} • ${categoryMeta.shortLabel}`}
                   </div>
                 </div>
@@ -1100,22 +1144,22 @@ export function SwarmGlobeAtlas({
           </div>
 
           <div className="flex items-center justify-between text-xs pt-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <span
-                className={`w-2 h-2 rotate-45 ${
+                className={`w-2 h-2 rotate-45 shrink-0 ${
                   activeSignal?.isConfirmedSwarm && activeSignal?.isMaliciousSwarm
                     ? 'bg-[#ef4444]'
                     : 'bg-[#f5b82e]'
                 }`}
               />
-              <span className="text-[#cbd2dc] truncate max-w-[200px]">
-                {activeSignal?.isConfirmedSwarm && activeSignal?.isMaliciousSwarm
-                  ? activeSignal.targetName || 'Active Network Incursion'
+              <span className="text-[#cbd2dc] truncate">
+                {activeSignal?.isConfirmedSwarm && activeSignal?.targetCountryName
+                  ? `${activeSignal.originCountryName} (${activeSignal.originCountryCode}) ➔ ${activeSignal.targetCountryName} (${activeSignal.targetCountryCode})`
                   : activeSignal?.countryName || 'Geolocation Signal'}
               </span>
             </div>
-            <span className="font-mono text-[11px] text-[#8a94a6]">
-              {activeIncident?.location_precision || 'country'}
+            <span className="font-mono text-[11px] text-[#8a94a6] shrink-0 ml-2">
+              {activeSignal?.publishedDate || 'LIVE'}
             </span>
           </div>
         </div>
@@ -1250,8 +1294,14 @@ export function SwarmGlobeAtlas({
                         {sig.title}
                       </h4>
 
-                      <div className="flex items-center gap-2 text-[11px] text-[#8a94a6]">
-                        <span className="text-[#cbd2dc]">{sig.countryName}</span>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#8a94a6]">
+                        {sig.isConfirmedSwarm && sig.targetCountryCode ? (
+                          <span className="font-mono text-[10px] px-1.5 py-0.2 bg-[#ef4444]/15 border border-[#ef4444]/35 text-[#fca5a5] font-medium">
+                            {sig.originCountryCode} ➔ {sig.targetCountryCode}
+                          </span>
+                        ) : (
+                          <span className="text-[#cbd2dc]">{sig.countryName}</span>
+                        )}
                         <span>•</span>
                         <span
                           className={
@@ -1261,6 +1311,10 @@ export function SwarmGlobeAtlas({
                           }
                         >
                           {sevLabel}
+                        </span>
+                        <span>•</span>
+                        <span className="font-mono text-[10px] text-[#64748b]">
+                          {sig.publishedDate}
                         </span>
                         <span>•</span>
                         {sig.isConfirmedSwarm ? (

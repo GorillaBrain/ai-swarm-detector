@@ -9,7 +9,7 @@ export default function HomePage() {
   const initialIncidentsResult = queryIncidents({
     mode: 'live',
     page: 1,
-    pageSize: 80,
+    pageSize: 200,
     sortBy: 'newest',
   });
   const liveStore = getStore('live');

@@ -38,7 +38,20 @@ const ORDINARY_AUTOMATION_INDICATORS = [
 
 const MULTI_AGENT_SWARM_INDICATORS = [
   /\b(multi-agent|multiagent|agent swarm|ai swarm|coordinated agents|swarm of agents|collaborative agents|hierarchical agents|sub-agents|agent orchestration|fleet of agents|autonomous agents coordinating)\b/i,
+  /\b(cross-sandbox|vm escapes?|secret cross-sandbox|hugging face hacking|agents.*collaboration|thousands of ai agents|distributed ai agents|autonomous red team kill chain|model distillation campaigns?|openclaw command|destructive ai agent|interacting populations|llm populations|doppelganger|gtg-1002|storm-0940|artex)\b/i,
 ];
+
+/**
+ * Checks whether a report title + summary contains explicit indicators of a confirmed
+ * multi-agent or coordinated AI swarm operation for instant spot-promotion.
+ */
+export function hasConfirmedSwarmIndicators(title: string, summary: string): boolean {
+  const combined = `${title} ${summary}`;
+  if (ORDINARY_AUTOMATION_INDICATORS.some((r) => r.test(combined))) {
+    return false;
+  }
+  return MULTI_AGENT_SWARM_INDICATORS.some((r) => r.test(combined));
+}
 
 const CYBER_OP_INDICATORS = [
   /\b(penetration testing|supply chain compromise|intrusion|exploit|vulnerability|malware|ransomware|reconnaissance|c2|command and control|threat actor|storm-\d+|apt|hackers|breach|cyberattack|evasion|backdoor)\b/i,
@@ -253,7 +266,7 @@ const COUNTRY_DETECTION_PATTERNS: Array<{
     basis: 'occurrence_location',
   },
   {
-    pattern: /\b(United States|U\.S\.|US government|CISA|American|Washington)\b/i,
+    pattern: /\b(United States|U\.S\.|US government|CISA|American|Washington|California|San Francisco|Sacramento|Silicon Valley|New York)\b/i,
     code: 'US',
     name: 'United States',
     region: 'North America',
@@ -372,9 +385,16 @@ const COUNTRY_DETECTION_PATTERNS: Array<{
     basis: 'occurrence_location',
   },
   {
-    pattern: /\b(Netherlands|Dutch|Amsterdam|Hague)\b/i,
+    pattern: /\b(Netherlands|Dutch|Amsterdam|Hague|Rotterdam|Rotterdamse)\b/i,
     code: 'NL',
     name: 'Netherlands',
+    region: 'Europe',
+    basis: 'occurrence_location',
+  },
+  {
+    pattern: /\b(Spain|Spanish|Madrid|PSOE|Zapatero)\b/i,
+    code: 'ES',
+    name: 'Spain',
     region: 'Europe',
     basis: 'occurrence_location',
   },
@@ -481,11 +501,11 @@ export function classifyWithRuleEngine(
     evidenceStrength = 'weak';
     isConfirmedSwarm = false;
     verificationStatus = 'unverified';
-  } else if (hasExplicitMultiAgent && article.sourceReliability >= 80) {
+  } else if (hasExplicitMultiAgent && article.sourceReliability >= 72) {
     evidenceStrength = 'strong';
     isConfirmedSwarm = true;
-    verificationStatus = article.isPrimaryProducer ? 'confirmed' : 'reported';
-  } else if (hasAgenticTerm && article.sourceReliability >= 80) {
+    verificationStatus = article.isPrimaryProducer ? 'confirmed' : 'corroborated';
+  } else if (hasAgenticTerm && article.sourceReliability >= 72) {
     evidenceStrength = 'strong';
     // Agentic tool / framework confirmed, check if multi-agent swarm is explicitly documented
     isConfirmedSwarm =

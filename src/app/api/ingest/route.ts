@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resetDemoStore } from '@/lib/db';
+import { resetAllSourceApiIndicators, resetDemoStore } from '@/lib/db';
 import { runIngestionPipeline } from '@/lib/ingestion/pipeline';
 import {
   authorizePrivilegedRequest,
@@ -37,6 +37,18 @@ export async function POST(req: NextRequest) {
         sources: demo.sources.length,
         serverTimeUtc: new Date().toISOString(),
       });
+    }
+
+    if (body?.action === 'reset_api_indicators') {
+      const resetSummary = resetAllSourceApiIndicators();
+      return NextResponse.json({
+        status: 'api_indicators_reset',
+        ...resetSummary,
+      });
+    }
+
+    if (body?.force) {
+      resetAllSourceApiIndicators();
     }
 
     const sourceSlug =

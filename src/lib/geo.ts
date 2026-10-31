@@ -276,6 +276,16 @@ export const COUNTRY_CENTROIDS: Record<string, CountryGeoReference> = {
     longitude: 19.1451,
     hubs: [{ name: 'Warsaw CERT Polska Hub, PL', lat: 52.2297, lon: 21.0122 }],
   },
+  ES: {
+    code: 'ES',
+    numericId: '724',
+    atlasName: 'Spain',
+    name: 'Spain',
+    region: 'Europe',
+    latitude: 40.4637,
+    longitude: -3.7492,
+    hubs: [{ name: 'Madrid CCN-CERT Cyber Hub, ES', lat: 40.4168, lon: -3.7038 }],
+  },
   AE: {
     code: 'AE',
     numericId: '784',

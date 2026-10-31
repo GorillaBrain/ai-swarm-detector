@@ -181,7 +181,7 @@ export const IncidentFilterSchema = z.object({
   confirmedSwarmOnly: z.coerce.boolean().optional(),
   sortBy: z.enum(['newest', 'updated', 'severity', 'confidence']).default('newest'),
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  pageSize: z.coerce.number().int().min(1).max(250).default(20),
 });
 
 export const AnalystFeedbackInputSchema = z.object({

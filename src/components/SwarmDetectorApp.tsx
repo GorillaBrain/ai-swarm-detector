@@ -102,7 +102,7 @@ export function SwarmDetectorApp({
     try {
       const [anaRes, incRes, srcRes] = await Promise.all([
         fetch(`/api/analytics?mode=${targetMode}`, { cache: 'no-store' }),
-        fetch(`/api/incidents?mode=${targetMode}&pageSize=80`, {
+        fetch(`/api/incidents?mode=${targetMode}&pageSize=200`, {
           cache: 'no-store',
         }),
         fetch(`/api/sources?mode=${targetMode}`, { cache: 'no-store' }),
@@ -122,6 +122,87 @@ export function SwarmDetectorApp({
       // Keep existing state on transient error
     }
   }, []);
+
+  // Real-time background polling + periodic API indicator reset & live OSINT ingestion
+  useEffect(() => {
+    if (pollIntervalSec <= 0) return;
+
+    const pollTimer = setInterval(() => {
+      refreshWorkspaceData(mode);
+    }, pollIntervalSec * 1000);
+
+    // Every 4 minutes in Live mode, run a silent background OSINT sync & spot-evaluation pass
+    const autoIngestTimer =
+      mode === 'live'
+        ? setInterval(async () => {
+            try {
+              await fetch('/api/ingest', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-soc-client': 'ai-swarm-detector-ui',
+                },
+                body: JSON.stringify({ force: false }),
+              });
+              await refreshWorkspaceData('live');
+            } catch {
+              // Silent background sync
+            }
+          }, 240_000)
+        : null;
+
+    // Reset all API rate-limit/status indicators automatically every 2 hours
+    const apiResetTimer =
+      mode === 'live'
+        ? setInterval(async () => {
+            try {
+              await fetch('/api/ingest', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-soc-client': 'ai-swarm-detector-ui',
+                },
+                body: JSON.stringify({ action: 'reset_api_indicators' }),
+              });
+              await refreshWorkspaceData('live');
+            } catch {
+              // Silent indicator reset
+            }
+          }, 2 * 60 * 60 * 1000)
+        : null;
+
+    return () => {
+      clearInterval(pollTimer);
+      if (autoIngestTimer) clearInterval(autoIngestTimer);
+      if (apiResetTimer) clearInterval(apiResetTimer);
+    };
+  }, [pollIntervalSec, mode, refreshWorkspaceData]);
+
+  const handleResetApiIndicators = async () => {
+    setIngesting(true);
+    setIngestBannerMsg(null);
+    try {
+      const res = await fetch('/api/ingest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-soc-client': 'ai-swarm-detector-ui',
+        },
+        body: JSON.stringify({ action: 'reset_api_indicators' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIngestBannerMsg(
+          `API indicators reset (${data.sourcesReset} feeds healthy) • ${data.confirmedSwarmsTotal} confirmed AI swarms active.`
+        );
+        await refreshWorkspaceData(mode);
+      }
+    } catch {
+      setIngestBannerMsg('Failed to reset API indicators.');
+    } finally {
+      setIngesting(false);
+    }
+  };
 
   const handleModeChange = async (newMode: OperatingMode) => {
     setMode(newMode);
@@ -361,22 +442,34 @@ export function SwarmDetectorApp({
           </div>
 
           {mode === 'live' && (
-            <button
-              type="button"
-              disabled={ingesting}
-              onClick={() => handleTriggerLiveIngest()}
-              title="Poll enabled OSINT intelligence sources"
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[#cbd2dc] hover:text-[#f3f5f8] text-xs transition disabled:opacity-50 cursor-pointer"
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${
-                  ingesting ? 'animate-spin text-[#f5b82e]' : ''
-                }`}
-              />
-              <span className="hidden sm:inline">
-                {ingesting ? 'Syncing' : 'Sync'}
-              </span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={ingesting}
+                onClick={() => handleResetApiIndicators()}
+                title="Reset all source API rate-limit/status indicators and re-evaluate confirmed swarm indicators on the spot (auto-resets every 2h)"
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-[#8a94a6] hover:text-[#f3f5f8] text-[11px] font-mono transition disabled:opacity-50 cursor-pointer"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Reset API</span>
+              </button>
+              <button
+                type="button"
+                disabled={ingesting}
+                onClick={() => handleTriggerLiveIngest()}
+                title="Poll enabled OSINT intelligence sources in real time"
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[#cbd2dc] hover:text-[#f3f5f8] text-xs transition disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${
+                    ingesting ? 'animate-spin text-[#f5b82e]' : ''
+                  }`}
+                />
+                <span className="hidden sm:inline">
+                  {ingesting ? 'Syncing' : 'Sync'}
+                </span>
+              </button>
+            </div>
           )}
         </div>
       </header>
