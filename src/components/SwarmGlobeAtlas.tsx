@@ -319,31 +319,8 @@ export function SwarmGlobeAtlas({
       ctx.arc(cx, cy, R * 1.48, 0, Math.PI * 2);
       ctx.fill();
 
-      // 1. Background Orbital Ring (Back half of tilted orbital telemetry ring)
       const isActiveMalicious =
         activeSignal?.isConfirmedSwarm && activeSignal?.isMaliciousSwarm;
-
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(-0.58);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, R * 1.24, R * 0.36, 0, Math.PI, Math.PI * 2);
-      ctx.strokeStyle = isActiveMalicious
-        ? 'rgba(239, 68, 68, 0.25)'
-        : 'rgba(255, 255, 255, 0.06)';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-
-      // Secondary outer dashed orbital track (back half)
-      ctx.rotate(0.18);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, R * 1.34, R * 0.44, 0, Math.PI, Math.PI * 2);
-      ctx.setLineDash([4, 6]);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
 
       // 2. Planetary Sphere Base (Directional Top-Left Illumination + Terminator Shadow)
       ctx.beginPath();
@@ -535,39 +512,6 @@ export function SwarmGlobeAtlas({
           }
         }
       }
-
-      // 7. Foreground Orbital Telemetry Ring (Front half crossing over the sphere, matching AETHERIA reference)
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(-0.58);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, R * 1.24, R * 0.36, 0, 0, Math.PI);
-      ctx.strokeStyle = isActiveMalicious
-        ? 'rgba(239, 68, 68, 0.72)'
-        : 'rgba(255, 255, 255, 0.12)';
-      ctx.lineWidth = isActiveMalicious ? 1.8 : 1.1;
-      ctx.stroke();
-
-      // Small orbital diamond markers on the ring
-      const ringAngles = [0.35, 2.75];
-      for (const ang of ringAngles) {
-        const rx = Math.cos(ang) * R * 1.24;
-        const ry = Math.sin(ang) * R * 0.36;
-        drawDiamond(rx, ry, 3.2, '#f3f5f8');
-      }
-
-      // Secondary outer dashed orbital track (front half)
-      ctx.rotate(0.18);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, R * 1.34, R * 0.44, 0, 0, Math.PI);
-      ctx.setLineDash([4, 6]);
-      ctx.strokeStyle = isActiveMalicious
-        ? 'rgba(239, 68, 68, 0.32)'
-        : 'rgba(255, 255, 255, 0.08)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
 
       // 8. Four Cardinal Directional Triangles Around the Sphere (Matching Reference Image)
       const cardinalDist = R + 28;
